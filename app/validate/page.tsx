@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { FileText, Users, Briefcase, CheckCircle, AlertCircle, Download, AlertTriangle, Info, ArrowLeft, Filter, Search, RefreshCw, Eye, EyeOff, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { FileText, Users, Briefcase, CheckCircle, AlertCircle, Download, AlertTriangle, Info, ArrowLeft, Filter, Search, RefreshCw, Eye, EyeOff, ChevronDown, ChevronRight, Zap, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
 import RuleInput from '../../components/rule-input';
@@ -18,50 +18,50 @@ import { Rule } from '../../utils/rule';
 import { ModernDataTable } from '@/components/data-table';
 
 // Enhanced Professional Validation Panel Component
-const ValidationPanel = ({ validationResult }: { validationResult: ValidationResult | null }) => {
+const ValidationPanel = ({ 
+  validationResult, 
+  onApplyFix,
+  onApplyAllFixes
+}: { 
+  validationResult: ValidationResult | null;
+  onApplyFix: (entity: string, index: number, field: string, value: any) => void;
+  onApplyAllFixes: () => void;
+}) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['CRITICAL']));
-  const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
+  const [showFixes, setShowFixes] = useState(false);
 
   if (!validationResult) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm h-full">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Validation Results</h3>
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-              <span className="text-sm text-gray-500">No Data</span>
-            </div>
-          </div>
+      <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col">
+        <div className="p-4 border-b">
+          <h3 className="font-medium text-gray-900">Validation</h3>
         </div>
-        <div className="p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="h-8 w-8 text-gray-400" />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <AlertCircle className="h-6 w-6 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">No data to validate</p>
           </div>
-          <p className="text-gray-500 text-sm">No validation results available</p>
-          <p className="text-gray-400 text-xs mt-1">Upload data to see validation status</p>
         </div>
       </div>
     );
   }
 
-  const { summary, errors, warnings } = validationResult;
-  const allIssues = showOnlyErrors ? errors : [...errors, ...warnings];
+  const { summary, errors, warnings, fixes } = validationResult;
+  const allIssues = [...errors, ...warnings];
   
-  // Filter issues based on search and severity
+  // Filter logic
   const filteredIssues = allIssues.filter(issue => {
     const matchesSearch = searchTerm === '' || 
-      issue.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (issue.entity ?? '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+      issue.message.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSeverity = selectedSeverity === 'all' || issue.severity === selectedSeverity;
-    
     return matchesSearch && matchesSeverity;
   });
   
-  // Group filtered issues by category
+  // Group by category
   const groupedIssues = filteredIssues.reduce((acc, issue) => {
     const category = getErrorCategory(issue.type);
     if (!acc[category]) acc[category] = [];
@@ -69,276 +69,233 @@ const ValidationPanel = ({ validationResult }: { validationResult: ValidationRes
     return acc;
   }, {} as Record<string, ValidationError[]>);
 
-  // Sort categories by priority
   const sortedCategories = Object.keys(groupedIssues).sort((a, b) => {
-    const priorityA = a === 'CRITICAL' ? 4 : a === 'DATA_INTEGRITY' ? 3 : a === 'BUSINESS_LOGIC' ? 2 : 1;
-    const priorityB = b === 'CRITICAL' ? 4 : b === 'DATA_INTEGRITY' ? 3 : b === 'BUSINESS_LOGIC' ? 2 : 1;
+    const priorityA = a === 'CRITICAL' ? 3 : a === 'DATA_INTEGRITY' ? 2 : 1;
+    const priorityB = b === 'CRITICAL' ? 3 : b === 'DATA_INTEGRITY' ? 2 : 1;
     return priorityB - priorityA;
   });
 
-  const toggleCategory = (category: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(category)) {
-      newExpanded.delete(category);
-    } else {
-      newExpanded.add(category);
-    }
-    setExpandedCategories(newExpanded);
+  const getStatusColor = () => {
+    if (validationResult.isValid) return 'text-green-600';
+    if (summary.totalErrors > 0) return 'text-red-600';
+    return 'text-amber-600';
   };
 
-  const getIconForSeverity = (severity: ValidationError['severity']) => {
-    switch (severity) {
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      default:
-        return <Info className="h-4 w-4 text-blue-500" />;
-    }
-  };
-
-  const getCategoryStyles = (category: string) => {
-    switch (category) {
-      case 'CRITICAL':
-        return 'border-red-200 bg-red-50 hover:bg-red-100';
-      case 'DATA_INTEGRITY':
-        return 'border-amber-200 bg-amber-50 hover:bg-amber-100';
-      case 'BUSINESS_LOGIC':
-        return 'border-blue-200 bg-blue-50 hover:bg-blue-100';
-      case 'WARNINGS':
-        return 'border-yellow-200 bg-yellow-50 hover:bg-yellow-100';
-      default:
-        return 'border-gray-200 bg-gray-50 hover:bg-gray-100';
-    }
+  const getStatusBg = () => {
+    if (validationResult.isValid) return 'bg-green-50';
+    if (summary.totalErrors > 0) return 'bg-red-50';
+    return 'bg-amber-50';
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CRITICAL':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-3 w-3 text-red-500" />;
       case 'DATA_INTEGRITY':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case 'BUSINESS_LOGIC':
-        return <Info className="h-4 w-4 text-blue-500" />;
+        return <AlertTriangle className="h-3 w-3 text-amber-500" />;
       default:
-        return <Info className="h-4 w-4 text-gray-500" />;
+        return <AlertTriangle className="h-3 w-3 text-blue-500" />;
     }
   };
-
-  const getHealthStatus = () => {
-    if (validationResult.isValid) {
-      return { status: 'Healthy', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', icon: CheckCircle };
-    }
-    if (summary.totalErrors > 0) {
-      return { status: 'Critical Issues', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', icon: AlertCircle };
-    }
-    return { status: 'Warnings', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle };
-  };
-
-  const healthStatus = getHealthStatus();
-  const HealthIcon = healthStatus.icon;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm h-full flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Validation Dashboard</h3>
+    <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col">
+      {/* Compact Header */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium text-gray-900">Validation</h3>
           <div className="flex items-center space-x-2">
-            <div className={`h-2 w-2 rounded-full ${validationResult.isValid ? 'bg-green-500' : summary.totalErrors > 0 ? 'bg-red-500' : 'bg-amber-500'}`}></div>
-            <span className={`text-sm font-medium ${healthStatus.color}`}>{healthStatus.status}</span>
+            <div className={`h-2 w-2 rounded-full ${
+              validationResult.isValid ? 'bg-green-500' : 
+              summary.totalErrors > 0 ? 'bg-red-500' : 'bg-amber-500'
+            }`}></div>
+            <span className={`text-xs font-medium ${getStatusColor()}`}>
+              {validationResult.isValid ? 'Valid' : 
+               summary.totalErrors > 0 ? 'Issues' : 'Warnings'}
+            </span>
           </div>
         </div>
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className={`${healthStatus.bg} ${healthStatus.border} border rounded-lg p-3`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Status</p>
-                <p className={`text-sm font-semibold ${healthStatus.color}`}>{healthStatus.status}</p>
-              </div>
-              <HealthIcon className={`h-5 w-5 ${healthStatus.color.replace('text-', 'text-').replace('-600', '-500')}`} />
-            </div>
+        {/* Compact Stats */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-3">
+            {summary.totalErrors > 0 && (
+              <span className="flex items-center text-red-600">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {summary.totalErrors}
+              </span>
+            )}
+            {summary.totalWarnings > 0 && (
+              <span className="flex items-center text-amber-600">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {summary.totalWarnings}
+              </span>
+            )}
           </div>
-          
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Records</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {summary.entityCounts.clients + summary.entityCounts.workers + summary.entityCounts.tasks}
-                </p>
-              </div>
-              <FileText className="h-5 w-5 text-gray-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Errors</p>
-                <p className="text-sm font-semibold text-red-700">{summary.totalErrors}</p>
-              </div>
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </div>
-          </div>
-          
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">Warnings</p>
-                <p className="text-sm font-semibold text-amber-700">{summary.totalWarnings}</p>
-              </div>
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-            </div>
-          </div>
+          <span className="text-gray-500">
+            {summary.entityCounts.clients + summary.entityCounts.workers + summary.entityCounts.tasks} records
+          </span>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="p-4 border-b border-gray-100 bg-gray-50">
-        <div className="flex flex-col space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search issues..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+      {/* Quick Fixes */}
+      {fixes.length > 0 && (
+        <div className="p-3 border-b bg-blue-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Zap className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-medium text-blue-700">
+                {fixes.length} Auto-fixes Available
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowFixes(!showFixes)}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                {showFixes ? 'Hide' : 'Show'}
+              </button>
+              <button
+                onClick={onApplyAllFixes}
+                className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+              >
+                Apply All
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <select
-              value={selectedSeverity}
-              onChange={(e) => setSelectedSeverity(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Severities</option>
-              <option value="error">Errors Only</option>
-              <option value="warning">Warnings Only</option>
-            </select>
-            
-            <button
-              onClick={() => setShowOnlyErrors(!showOnlyErrors)}
-              className={`flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                showOnlyErrors 
-                  ? 'bg-red-100 text-red-700 border border-red-200' 
-                  : 'bg-gray-100 text-gray-700 border border-gray-200'
-              }`}
-            >
-              <Filter className="h-3 w-3 mr-1" />
-              {showOnlyErrors ? 'Errors Only' : 'All Issues'}
-            </button>
-          </div>
+          {showFixes && (
+            <div className="mt-3 space-y-2">
+              {fixes.map((fix, index) => (
+                <div key={index} className="bg-white rounded border p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-900 truncate">
+                        {fix.message}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {fix.entity} • Row {fix.row + 1} • {fix.column}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onApplyFix(fix.entity, fix.row, fix.column, fix.value)}
+                      className="text-blue-600 hover:text-blue-800 ml-2"
+                    >
+                      <Check className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Compact Search & Filter */}
+      <div className="p-3 border-b space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search issues..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-7 pr-3 py-1.5 text-xs border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <select
+            value={selectedSeverity}
+            onChange={(e) => setSelectedSeverity(e.target.value)}
+            className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="all">All Issues</option>
+            <option value="error">Errors</option>
+            <option value="warning">Warnings</option>
+          </select>
         </div>
       </div>
 
       {/* Issues List */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {sortedCategories.length > 0 ? (
-          <div className="h-full overflow-y-auto">
-            <div className="p-4 space-y-3">
-              {sortedCategories.map((category) => {
-                const categoryIssues = groupedIssues[category];
-                const isExpanded = expandedCategories.has(category);
-                
-                return (
-                  <div key={category} className={`border rounded-lg overflow-hidden ${getCategoryStyles(category)}`}>
-                    <button
-                      onClick={() => toggleCategory(category)}
-                      className="w-full px-4 py-3 text-left flex items-center justify-between transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        {getCategoryIcon(category)}
-                        <div>
-                          <span className="font-medium text-gray-900 text-sm">
-                            {category.replace('_', ' ')}
-                          </span>
-                          <span className="ml-2 text-xs text-gray-500 bg-white bg-opacity-50 px-2 py-0.5 rounded-full">
-                            {categoryIssues.length}
-                          </span>
-                        </div>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-gray-500" />
-                      )}
-                    </button>
-                    
-                    {isExpanded && (
-                      <div className="border-t border-gray-200 bg-white">
-                        <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
-                          {categoryIssues.map((issue, index) => (
-                            <div
-                              key={index}
-                              className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-start space-x-3">
-                                {getIconForSeverity(issue.severity)}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                      {issue.message}
-                                    </p>
-                                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md border">
-                                      {issue.entity}
-                                    </span>
-                                  </div>
-                                  
-                                  {(issue.row !== undefined || issue.column) && (
-                                    <div className="flex items-center space-x-2 text-xs text-gray-600 mb-2">
-                                      {issue.row !== undefined && (
-                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                          Row {issue.row + 1}
-                                        </span>
-                                      )}
-                                      {issue.column && (
-                                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                                          {issue.column}
-                                        </span>
-                                      )}
-                                      {issue.value !== undefined && (
-                                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-mono">
-                                          "{String(issue.value)}"
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  
-                                  {issue.suggestion && (
-                                    <div className="text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-200">
-                                      <div className="flex items-start space-x-1">
-                                        <span className="text-blue-500">💡</span>
-                                        <span>{issue.suggestion}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
+          <div className="p-3 space-y-2">
+            {sortedCategories.map((category) => {
+              const categoryIssues = groupedIssues[category];
+              const isExpanded = expandedCategories.has(category);
+              
+              return (
+                <div key={category} className="border rounded">
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedCategories);
+                      if (newExpanded.has(category)) {
+                        newExpanded.delete(category);
+                      } else {
+                        newExpanded.add(category);
+                      }
+                      setExpandedCategories(newExpanded);
+                    }}
+                    className="w-full px-3 py-2 text-left flex items-center justify-between hover:bg-gray-50"
+                  >
+                    <div className="flex items-center space-x-2">
+                      {getCategoryIcon(category)}
+                      <span className="text-sm font-medium text-gray-900">
+                        {category.replace('_', ' ')}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {categoryIssues.length}
+                      </span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="h-3 w-3 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3 text-gray-400" />
+                    )}
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="border-t bg-gray-50">
+                      <div className="p-2 space-y-1">
+                        {categoryIssues.map((issue, index) => (
+                          <div
+                            key={index}
+                            className="bg-white rounded p-2 border text-xs"
+                          >
+                            <div className="flex items-start space-x-2">
+                              {issue.severity === 'error' ? (
+                                <AlertCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 leading-tight">
+                                  {issue.message}
+                                </p>
+                                {(issue.row !== undefined || issue.column) && (
+                                  <p className="text-gray-500 mt-1">
+                                    {issue.entity} • Row {(issue.row || 0) + 1}
+                                    {issue.column && ` • ${issue.column}`}
+                                  </p>
+                                )}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-500" />
-              </div>
-              <p className="text-gray-900 font-medium text-sm">All validations passed!</p>
-              <p className="text-gray-500 text-xs mt-1">Your data is ready for processing</p>
+              <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-900">All Clear!</p>
+              <p className="text-xs text-gray-500">No validation issues found</p>
             </div>
           </div>
         )}
@@ -354,6 +311,7 @@ export default function ValidatePage() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [activeTab, setActiveTab] = useState<'clients' | 'workers' | 'tasks' | 'rules'>('clients');
   const [isValidating, setIsValidating] = useState(false);
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Redirect to upload page if no data is loaded
   useEffect(() => {
@@ -366,7 +324,30 @@ export default function ValidatePage() {
     runValidation();
   }, [data.isDataLoaded, router]);
 
+  // Auto-validate when data changes
+  useEffect(() => {
+    if (data.isDataLoaded) {
+      // Clear existing timeout
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+      
+      // Set new timeout for validation
+      validationTimeoutRef.current = setTimeout(() => {
+        runValidation();
+      }, 300); // Debounce validation by 300ms
+    }
+    
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
+  }, [data.clients, data.workers, data.tasks, data.rules]);
+
   const runValidation = useCallback(async () => {
+    if (!data.isDataLoaded) return;
+    
     setIsValidating(true);
     
     // Simulate async validation for better UX
@@ -382,7 +363,7 @@ export default function ValidatePage() {
     setValidationResult(result);
     setIsValidating(false);
     return result;
-  }, [data,data.clients, data.workers, data.tasks]);
+  }, [data.isDataLoaded, data.clients, data.workers, data.tasks]);
 
   const handleEdit = useCallback((type: string, index: number, field: string, value: any) => {
     const updatedData = [...(data[type as keyof typeof data] as any[])];
@@ -392,13 +373,47 @@ export default function ValidatePage() {
     if (type === 'workers') setWorkers(updatedData);
     if (type === 'tasks') setTasks(updatedData);
     
-    setTimeout(() => runValidation(), 500);
+    // Validation will be triggered automatically by useEffect
   }, [data, setClients, setWorkers, setTasks]);
+
+  const handleApplyFix = useCallback((entity: string, index: number, field: string, value: any) => {
+    handleEdit(entity, index, field, value);
+  }, [handleEdit]);
+
+  const handleApplyAllFixes = useCallback(() => {
+    if (!validationResult?.fixes) return;
+    
+    // Group fixes by entity type to batch updates
+    const fixesByEntity = validationResult.fixes.reduce((acc, fix) => {
+      if (!acc[fix.entity]) acc[fix.entity] = [];
+      acc[fix.entity].push(fix);
+      return acc;
+    }, {} as Record<string, any[]>);
+    
+    // Apply all fixes for each entity type
+    Object.entries(fixesByEntity).forEach(([entityType, fixes]) => {
+      const currentData = [...(data[entityType as keyof typeof data] as any[])];
+      
+      // Apply all fixes to the data
+      fixes.forEach(fix => {
+        if (currentData[fix.row]) {
+          currentData[fix.row] = { ...currentData[fix.row], [fix.column]: fix.value };
+        }
+      });
+      
+      // Update the state with all fixes applied
+      if (entityType === 'clients') setClients(currentData);
+      if (entityType === 'workers') setWorkers(currentData);
+      if (entityType === 'tasks') setTasks(currentData);
+    });
+    
+    // Validation will be triggered automatically by useEffect
+  }, [validationResult, data, setClients, setWorkers, setTasks]);
 
   const handleRulesChange = useCallback((rules: Rule[]) => {
     setRules(rules);
+    // Validation will be triggered automatically by useEffect
   }, [setRules]);
-
 
   const handleExport = () => {
     if (!validationResult?.isValid) {
@@ -478,7 +493,7 @@ export default function ValidatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-[100%] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
@@ -486,14 +501,14 @@ export default function ValidatePage() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleBackToUpload}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-3 py-2 border shadow-lg text-sm font-medium rounded-md text-foreground bg-secondary hover:bg-accent hover:text-accent-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Upload
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Data Validation & Quality Control</h1>
-                <p className="mt-1 text-sm text-gray-600">
+                <h1 className="text-2xl font-bold text-foreground">Data Validation & Quality Control</h1>
+                <p className="mt-1 text-sm text-foreground/90">
                   Review, validate, and clean your data before processing
                 </p>
               </div>
@@ -502,7 +517,7 @@ export default function ValidatePage() {
               <button
                 onClick={runValidation}
                 disabled={isValidating}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 border shadow-lg text-sm font-medium rounded-md text-foreground bg-secondary hover:bg-accent hover:text-accent-foreground"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isValidating ? 'animate-spin' : ''}`} />
                 {isValidating ? 'Validating...' : 'Re-validate'}
@@ -512,8 +527,8 @@ export default function ValidatePage() {
                 disabled={!validationResult?.isValid}
                 className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                   validationResult?.isValid
-                    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                    : 'bg-gray-400 cursor-not-allowed'
+                    ? 'bg-primary hover:bg-primary/80'
+                    : 'bg-foreground/50 cursor-not-allowed'
                 }`}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -527,14 +542,18 @@ export default function ValidatePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Validation Panel - Left Side */}
           <div className="lg:col-span-1">
-            <ValidationPanel validationResult={validationResult} />
+            <ValidationPanel 
+              validationResult={validationResult} 
+              onApplyFix={handleApplyFix}
+              onApplyAllFixes={handleApplyAllFixes}
+            />
           </div>
           
           {/* Data Table - Right Side */}
           <div className="lg:col-span-3">
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="bg-background border rounded-xl shadow-sm">
               {/* Tabs Header */}
-              <div className="border-b border-gray-200 bg-gray-50 rounded-t-xl">
+              <div className="border-b bg-muted rounded-t-xl ">
                 <nav className="flex space-x-8 px-6">
                   {(['clients', 'workers', 'tasks', 'rules'] as const).map((tab) => (
                     <button
@@ -542,13 +561,13 @@ export default function ValidatePage() {
                       onClick={() => setActiveTab(tab)}
                       className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                         activeTab === tab
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-500 hover:text-accent-foreground hover:border-primary'
                       }`}
                     >
                       {getTabIcon(tab)}
                       <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-                      <span className="ml-2 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                      <span className="ml-2 bg-secondary text-secondary-foreground p-2 rounded-full text-xs">
                         {data[tab].length}
                       </span>
                     </button>
@@ -557,7 +576,7 @@ export default function ValidatePage() {
               </div>
               
               {/* Tab Content */}
-              <div className="p-6">
+              <div className="p-0 ">
                 {activeTab === 'rules' ? (
                   <RuleInput
                     availableTasks={data.tasks.map((task: any) => task.TaskID || task.TaskName || 'Unknown')}

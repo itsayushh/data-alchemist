@@ -253,7 +253,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   }
 
   return (
-    <div className="bg-muted rounded-lg shadow-sm border border-neutral-200">
+    <div className="bg-muted border">
       {/* Header */}
       <div className="px-6 py-4 border-b">
         <div className="flex items-center justify-between">
@@ -400,12 +400,12 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                     return (
                       <td key={column.key} className="px-6 py-4 whitespace-nowrap">
                         <div className="relative">
-                          <div
-                            className={`w-full border rounded px-3 py-2 text-sm bg-foreground/3 ${cellClass.replace('focus:ring-blue-500 focus:border-blue-500', 'focus:ring-primary focus:border-primary')}`}
-                            title={tooltip}
-                          >
-                            {row[column.key] || ''}
-                          </div>
+                          <input
+                              type="text"
+                              value={row[column.key] || ''}
+                              onChange={(e) => onEdit(actualIndex, column.key, e.target.value)}
+                              className={`w-full border rounded p-2 text-sm bg-foreground/3 ${cellClass.replace('focus:ring-blue-500 focus:border-blue-500', 'focus:ring-primary focus:border-primary')}`}
+                            />
                           {validationIcon && (
                             <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                               {validationIcon}

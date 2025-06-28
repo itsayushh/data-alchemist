@@ -11,10 +11,20 @@ export interface ValidationError {
   suggestion?: string;
 }
 
+export interface ValidationFix {
+  type: string;
+  message: string;
+  entity: string;
+  row: number;
+  column: string;
+  value: any;
+}
+
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
   warnings: ValidationError[];
+  fixes: ValidationFix[];
   summary: {
     totalErrors: number;
     totalWarnings: number;
@@ -65,10 +75,12 @@ export interface DataSet {
 export class AdvancedValidator {
   private errors: ValidationError[] = [];
   private warnings: ValidationError[] = [];
+  private fixes: ValidationFix[]=[];
   
   constructor() {
     this.errors = [];
     this.warnings = [];
+    this.fixes = [];
   }
 
   private addError(error: Omit<ValidationError, 'severity'>): void {
@@ -77,6 +89,10 @@ export class AdvancedValidator {
 
   private addWarning(warning: Omit<ValidationError, 'severity'>): void {
     this.warnings.push({ ...warning, severity: 'warning' });
+  }
+
+  private addFix(fix: ValidationFix): void {
+    this.fixes.push(fix);
   }
 
   private parseArray(value: string, fieldName: string, row: number, entity: string): number[] {
@@ -329,8 +345,17 @@ export class AdvancedValidator {
           value: client.PriorityLevel,
           suggestion: 'Use values 1 (lowest) to 5 (highest priority)'
         });
+        this.addFix({
+          type: 'range',
+          message: `PriorityLevel value adjusted to ${client.PriorityLevel > 5 ? 5 : 1}`,
+          row: index,
+          column: 'PriorityLevel',
+          entity: 'clients',
+          value: client.PriorityLevel > 5 ? 5 : 1,
+        });
       }
     });
+
 
     // Validate task durations
     data.tasks.forEach((task, index) => {
@@ -343,6 +368,14 @@ export class AdvancedValidator {
           entity: 'tasks',
           value: task.Duration,
           suggestion: 'Duration represents number of phases and must be at least 1'
+        });
+        this.addFix({
+          type: 'range',
+          message: `Duration value adjusted to 1`,
+          row: index,
+          column: 'Duration',
+          entity: 'tasks',
+          value: 1,
         });
       }
       if (task.Duration > 10) {
@@ -368,6 +401,14 @@ export class AdvancedValidator {
           entity: 'workers',
           value: worker.MaxLoadPerPhase,
           suggestion: 'Each worker must be able to handle at least 1 task per phase'
+        });
+        this.addFix({
+          type: 'range',
+          message: `MaxLoadPerPhase value adjusted to 1`,
+          row: index,
+          column: 'MaxLoadPerPhase',
+          entity: 'workers',
+          value: 1,
         });
       }
       if (worker.MaxLoadPerPhase > 20) {
@@ -465,6 +506,14 @@ export class AdvancedValidator {
           value: worker.MaxLoadPerPhase,
           suggestion: `Reduce MaxLoadPerPhase to ${availableSlots.length} or increase available slots`
         });
+        this.addFix({
+          type: 'range',
+          message: `MaxLoadPerPhase value adjusted to ${availableSlots.length}`,
+          row: index,
+          column: 'MaxLoadPerPhase',
+          entity: 'workers',
+          value: availableSlots.length,
+        });
       }
     });
   }
@@ -492,6 +541,14 @@ export class AdvancedValidator {
           entity: 'tasks',
           value: task.MaxConcurrent,
           suggestion: `Reduce MaxConcurrent to ${qualifiedWorkers.length} or add more qualified workers`
+        });
+        this.addFix({
+          type: 'range',
+          message: `MaxConcurrent value adjusted to ${qualifiedWorkers.length}`,
+          row: index,
+          column: 'MaxConcurrent',
+          entity: 'tasks',
+          value: qualifiedWorkers.length,
         });
       }
     });
@@ -608,6 +665,7 @@ export class AdvancedValidator {
       isValid: this.errors.length === 0,
       errors: this.errors,
       warnings: this.warnings,
+      fixes: this.fixes,
       summary: {
         totalErrors: this.errors.length,
         totalWarnings: this.warnings.length,
@@ -683,7 +741,7 @@ export const ERROR_CATEGORIES = {
 // Helper function to get error category
 export function getErrorCategory(errorType: string): keyof typeof ERROR_CATEGORIES | 'OTHER' {
   for (const [category, types] of Object.entries(ERROR_CATEGORIES)) {
-    if (types.includes(errorType as any)) {
+    if (types.includes(errorType)) {
       return category as keyof typeof ERROR_CATEGORIES;
     }
   }
