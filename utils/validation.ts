@@ -9,6 +9,7 @@ export interface ValidationError {
   entity?: string;
   value?: any;
   suggestion?: string;
+  suggestedValue?: any;
 }
 
 export interface ValidationFix {
@@ -343,7 +344,8 @@ export class AdvancedValidator {
           column: 'PriorityLevel',
           entity: 'clients',
           value: client.PriorityLevel,
-          suggestion: 'Use values 1 (lowest) to 5 (highest priority)'
+          suggestion: 'Use values 1 (lowest) to 5 (highest priority)',
+          suggestedValue: client.PriorityLevel > 5 ? 5 : 1
         });
         this.addFix({
           type: 'range',
@@ -367,7 +369,8 @@ export class AdvancedValidator {
           column: 'Duration',
           entity: 'tasks',
           value: task.Duration,
-          suggestion: 'Duration represents number of phases and must be at least 1'
+          suggestion: 'Duration represents number of phases and must be at least 1',
+          suggestedValue: 1
         });
         this.addFix({
           type: 'range',
@@ -400,7 +403,8 @@ export class AdvancedValidator {
           column: 'MaxLoadPerPhase',
           entity: 'workers',
           value: worker.MaxLoadPerPhase,
-          suggestion: 'Each worker must be able to handle at least 1 task per phase'
+          suggestion: 'Each worker must be able to handle at least 1 task per phase',
+          suggestedValue: 1
         });
         this.addFix({
           type: 'range',
@@ -430,7 +434,7 @@ export class AdvancedValidator {
     });
 
     data.tasks.forEach((task, index) => {
-      this.parseArray(task.PreferredPhases, 'PreferredPhases', index, 'tasks');
+      task.PreferredPhases =  '[' +this.parseArray(task.PreferredPhases, 'PreferredPhases', index, 'tasks').toString() + ']';
     });
   }
 
@@ -456,7 +460,8 @@ export class AdvancedValidator {
               column: 'RequestedTaskIDs',
               entity: 'clients',
               value: taskId,
-              suggestion: 'Ensure all requested TaskIDs exist in the tasks dataset'
+              suggestion: 'Ensure all requested TaskIDs exist in the tasks dataset',
+              suggestedValue: requestedIds.filter(id => taskIds.has(id)).join(', ')
             });
           }
         });
@@ -504,7 +509,8 @@ export class AdvancedValidator {
           column: 'MaxLoadPerPhase',
           entity: 'workers',
           value: worker.MaxLoadPerPhase,
-          suggestion: `Reduce MaxLoadPerPhase to ${availableSlots.length} or increase available slots`
+          suggestion: `Reduce MaxLoadPerPhase to ${availableSlots.length} or increase available slots`,
+          suggestedValue: availableSlots.length
         });
         this.addFix({
           type: 'range',
@@ -540,7 +546,8 @@ export class AdvancedValidator {
           column: 'MaxConcurrent',
           entity: 'tasks',
           value: task.MaxConcurrent,
-          suggestion: `Reduce MaxConcurrent to ${qualifiedWorkers.length} or add more qualified workers`
+          suggestion: `Reduce MaxConcurrent to ${qualifiedWorkers.length} or add more qualified workers`,
+          suggestedValue: qualifiedWorkers.length
         });
         this.addFix({
           type: 'range',

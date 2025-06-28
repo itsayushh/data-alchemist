@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Database, Filter, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { getFilterFromPrompt } from '@/lib/gemini';
@@ -38,7 +38,8 @@ const NLDataRetrieval = () => {
     try {
       const intent = await getFilterFromPrompt(query);
       setQueryIntent(intent as QueryIntent);
-      const searchResults = executeQuery(intent as QueryIntent);
+      
+      const searchResults = executeQuery(intent as QueryIntent,data);
       setResults(searchResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -59,7 +60,8 @@ const NLDataRetrieval = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+
+    <div className="flex flex-col mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-gray-900">Natural Language Data Retrieval</h1>
         <p className="text-gray-600">Search your data using plain English with Gemini AI</p>

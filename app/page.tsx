@@ -1,11 +1,12 @@
-  'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Users, Briefcase, CheckCircle, AlertCircle, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
+import { Upload, FileText, Users, Briefcase, CheckCircle, AlertCircle, ArrowRight, RefreshCw, Trash2, Sparkles, Database, FileSpreadsheet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { useData } from '@/contexts/DataContext';
+import { clear } from 'console';
 
 interface FileUploadState {
   clients: { file: File | null; data: any[]; isUploaded: boolean };
@@ -50,75 +51,119 @@ const FileUploadCard = ({
     }
   };
 
-  const getFileTypeLabel = (type: string) => {
+  const getFileTypeConfig = (type: string) => {
     switch (type) {
-      case 'clients': return 'Clients';
-      case 'workers': return 'Workers';
-      case 'tasks': return 'Tasks';
-      default: return type;
+      case 'clients':
+        return {
+          label: 'Clients',
+          description: 'Upload your client database',
+          color: 'blue'
+        };
+      case 'workers':
+        return {
+          label: 'Workers',
+          description: 'Upload your worker database',
+          color: 'green'
+        };
+      case 'tasks':
+        return {
+          label: 'Tasks',
+          description: 'Upload your task database',
+          color: 'purple'
+        };
+      default:
+        return { label: type, description: '', color: 'gray' };
     }
   };
+
+  const config = getFileTypeConfig(fileType);
   
   return (
-    <div className={`border-2 border-dashed rounded-lg p-6 transition-all duration-200 ${
-      uploadState.isUploaded 
-        ? 'border-green-300 bg-green-50' 
+    <div className={`
+      relative group rounded-xl transition-all duration-300 border-2 border-dashed
+      ${uploadState.isUploaded 
+        ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg' 
         : isDragging 
-        ? 'border-blue-400 bg-blue-50' 
-        : 'border-gray-300 hover:border-gray-400'
-    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg scale-105' 
+        : 'border-border hover:border-primary/50 bg-card hover:shadow-md'
+      }
+      ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+    `}
     onDragOver={(e) => { e.preventDefault(); if (!isLoading) setIsDragging(true); }}
     onDragLeave={() => setIsDragging(false)}
     onDrop={handleDrop}
     >
-      <div className="text-center">
-        <Icon className={`mx-auto h-12 w-12 mb-4 ${
-          uploadState.isUploaded ? 'text-green-500' : 'text-gray-400'
-        }`} />
+      <div className="p-8 text-center">
+        <div className={`
+          mx-auto mb-6 p-4 rounded-full inline-flex items-center justify-center
+          ${uploadState.isUploaded 
+            ? 'bg-green-100 text-green-600' 
+            : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
+          } transition-colors duration-200
+        `}>
+          <Icon className="h-8 w-8" />
+        </div>
         
         {uploadState.isUploaded ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-green-700 font-medium">{uploadState.file?.name}</span>
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-green-800 font-medium truncate max-w-40" title={uploadState.file?.name}>
+                {uploadState.file?.name}
+              </span>
             </div>
-            <p className="text-sm text-green-600">{uploadState.data.length} records loaded</p>
-            <button
-              onClick={() => onRemove(fileType)}
-              className="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Remove
-            </button>
+            <div className="space-y-2">
+              <div className="text-sm text-green-700 font-medium">
+                {uploadState.data.length.toLocaleString()} records loaded
+              </div>
+              <div className="flex justify-center space-x-2">
+                <button
+                  onClick={() => onRemove(fileType)}
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg 
+                    text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 
+                    transition-colors duration-200"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Remove
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <h3 className="text-lg font-medium text-gray-900">{getFileTypeLabel(fileType)}</h3>
-            <p className="text-sm text-gray-600">
-              Drop your {fileType} file here or click to browse
-            </p>
-            <p className="text-xs text-gray-500">
-              Supports CSV, XLSX, XLS files
-            </p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileInput}
-              className="hidden"
-              id={`file-${fileType}`}
-              disabled={isLoading}
-            />
-            <label
-              htmlFor={`file-${fileType}`}
-              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-              }`}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isLoading ? 'Processing...' : 'Choose File'}
-            </label>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{config.label}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{config.description}</p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
+                Supports CSV, XLSX, XLS files
+              </div>
+              
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileInput}
+                className="hidden"
+                id={`file-${fileType}`}
+                disabled={isLoading}
+              />
+              <label
+                htmlFor={`file-${fileType}`}
+                className={`
+                  inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg 
+                  transition-all duration-200 min-w-32
+                  ${isLoading
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md cursor-pointer'
+                  }
+                `}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isLoading ? 'Processing...' : 'Choose File'}
+              </label>
+            </div>
           </div>
         )}
       </div>
@@ -151,6 +196,30 @@ const MultiFileUpload = ({
 
   const { setClients, setWorkers, setTasks } = useData();
 
+  // Intelligent sheet detection
+  const detectSheetType = (sheetName: string): 'clients' | 'workers' | 'tasks' | null => {
+    const name = sheetName.toLowerCase();
+    
+    // Client detection
+    if (name.includes('client') || name.includes('customer') || name.includes('company')) {
+      return 'clients';
+    }
+    
+    // Worker detection
+    if (name.includes('worker') || name.includes('employee') || name.includes('staff') || 
+        name.includes('team') || name.includes('personnel') || name.includes('user')) {
+      return 'workers';
+    }
+    
+    // Task detection
+    if (name.includes('task') || name.includes('project') || name.includes('job') || 
+        name.includes('work') || name.includes('assignment') || name.includes('activity')) {
+      return 'tasks';
+    }
+    
+    return null;
+  };
+
   const handleFile = (file: File) => {
     setIsLoading(true);
     setUploadedFile(file);
@@ -176,12 +245,23 @@ const MultiFileUpload = ({
             
             setSheetsData({ 'Sheet1': cleanedData });
             setAvailableSheets(['Sheet1']);
+            
+            // Auto-detect for single sheet
+            const detectedType = detectSheetType(file.name);
+            if (detectedType) {
+              setSheetMappings(prev => ({
+                ...prev,
+                [detectedType]: 'Sheet1'
+              }));
+            }
+            
             setIsLoading(false);
           }
         });
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheets: {[key: string]: any[]} = {};
+        const detectedMappings: {[key: string]: string} = {};
         
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
@@ -197,10 +277,23 @@ const MultiFileUpload = ({
           });
           
           sheets[sheetName] = cleanedData;
+          
+          // Auto-detect sheet type
+          const detectedType = detectSheetType(sheetName);
+          if (detectedType && !detectedMappings[detectedType]) {
+            detectedMappings[detectedType] = sheetName;
+          }
         });
         
         setSheetsData(sheets);
         setAvailableSheets(workbook.SheetNames);
+        
+        // Apply detected mappings
+        setSheetMappings(prev => ({
+          ...prev,
+          ...detectedMappings
+        }));
+        
         setIsLoading(false);
       }
     };
@@ -242,86 +335,139 @@ const MultiFileUpload = ({
   const canLoadData = sheetMappings.clients && sheetMappings.workers && sheetMappings.tasks;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isDragging ? 'border-blue-400 bg-blue-50' : uploadedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'
-        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`
+          relative rounded-2xl border-2 border-dashed p-12 text-center transition-all duration-300
+          ${isDragging 
+            ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl scale-105' 
+            : uploadedFile 
+            ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg' 
+            : 'border-border hover:border-primary/50 bg-card hover:shadow-lg'
+          }
+          ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
         onDragOver={(e) => { e.preventDefault(); if (!isLoading) setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
       >
-        <FileText className={`mx-auto h-16 w-16 mb-4 ${uploadedFile ? 'text-green-500' : 'text-gray-400'}`} />
-        
-        {uploadedFile ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-green-700 font-medium">{uploadedFile.name}</span>
+        <div className="relative">
+          <div className={`
+            mx-auto mb-6 p-6 rounded-full inline-flex items-center justify-center
+            ${uploadedFile 
+              ? 'bg-green-100 text-green-600' 
+              : 'bg-primary/10 text-primary'
+            } transition-colors duration-200
+          `}>
+            <FileSpreadsheet className="h-12 w-12" />
+          </div>
+          
+          {uploadedFile ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-3">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+                <span className="text-green-800 font-semibold text-lg">{uploadedFile.name}</span>
+              </div>
+              <div className="inline-flex items-center space-x-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
+                <Database className="h-4 w-4" />
+                <span>{availableSheets.length} sheet(s) detected</span>
+              </div>
             </div>
-            <p className="text-sm text-green-600">{availableSheets.length} sheet(s) found</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h3 className="text-xl font-medium text-gray-900">Upload Single File with Multiple Sheets</h3>
-            <p className="text-gray-600">
-              Drop your Excel/CSV file here containing all three datasets
-            </p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileInput}
-              className="hidden"
-              id="multi-file-upload"
-              disabled={isLoading}
-            />
-            <label
-              htmlFor="multi-file-upload"
-              className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-              }`}
-            >
-              <Upload className="h-5 w-5 mr-2" />
-              {isLoading ? 'Processing...' : 'Choose File'}
-            </label>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">
+                  Single File Upload
+                </h3>
+                <p className="text-muted-foreground text-lg mb-2">
+                  Upload one Excel file containing all your data sheets
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  We'll automatically detect and map your sheets
+                </p>
+              </div>
+              
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileInput}
+                className="hidden"
+                id="multi-file-upload"
+                disabled={isLoading}
+              />
+              <label
+                htmlFor="multi-file-upload"
+                className={`
+                  inline-flex items-center px-8 py-4 text-base font-semibold rounded-xl
+                  transition-all duration-200 shadow-lg hover:shadow-xl
+                  ${isLoading
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 cursor-pointer'
+                  }
+                `}
+              >
+                <Upload className="h-5 w-5 mr-3" />
+                {isLoading ? 'Processing...' : 'Choose File'}
+              </label>
+            </div>
+          )}
+        </div>
       </div>
 
       {availableSheets.length > 0 && (
-        <div className="bg-white p-6 rounded-lg border">
-          <h4 className="text-lg font-medium mb-4">Map Sheets to Data Types</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['clients', 'workers', 'tasks'] as const).map((entityType) => (
-              <div key={entityType} className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 capitalize">
-                  {entityType} Sheet
-                </label>
-                <select
-                  value={sheetMappings[entityType]}
-                  onChange={(e) => handleMappingChange(entityType, e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select sheet...</option>
-                  {availableSheets.map(sheet => (
-                    <option key={sheet} value={sheet}>
-                      {sheet} ({sheetsData[sheet]?.length || 0} records)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
+        <div className="bg-card rounded-2xl border shadow-lg p-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <h4 className="text-xl font-semibold text-foreground">Smart Sheet Mapping</h4>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(['clients', 'workers', 'tasks'] as const).map((entityType) => {
+              const icons = { clients: Users, workers: Briefcase, tasks: FileText };
+              const Icon = icons[entityType];
+              const colors = { 
+                clients: 'blue', 
+                workers: 'green', 
+                tasks: 'purple' 
+              };
+              
+              return (
+                <div key={entityType} className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Icon className="h-5 w-5 text-primary" />
+                    <label className="text-sm font-semibold text-foreground capitalize">
+                      {entityType} Data
+                    </label>
+                  </div>
+                  <select
+                    value={sheetMappings[entityType]}
+                    onChange={(e) => handleMappingChange(entityType, e.target.value)}
+                    className="w-full p-3 border border-border rounded-lg bg-background text-foreground 
+                      focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Select sheet...</option>
+                    {availableSheets.map(sheet => (
+                      <option key={sheet} value={sheet}>
+                        {sheet} ({sheetsData[sheet]?.length.toLocaleString() || 0} records)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
           
           {canLoadData && (
-            <div className="mt-6 text-center">
+            <div className="mt-8 text-center">
               <button
                 onClick={handleLoadData}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                className="inline-flex items-center px-8 py-4 text-base font-semibold rounded-xl
+                  bg-green-600 text-white hover:bg-green-700 transition-all duration-200 
+                  shadow-lg hover:shadow-xl hover:scale-105"
               >
-                <ArrowRight className="h-5 w-5 mr-2" />
+                <ArrowRight className="h-5 w-5 mr-3" />
                 Load Data & Continue
               </button>
             </div>
@@ -344,10 +490,10 @@ export default function UploadPage() {
     tasks: { file: null, data: [], isUploaded: false }
   });
 
-  // Check if data is already loaded from localStorage
+  // Check if data is already loaded
   useEffect(() => {
     if (data.isDataLoaded) {
-      // If data exists, navigate to validation page
+      // If data is loaded, redirect to validation page
       router.push('/validate');
     }
   }, [data.isDataLoaded, router]);
@@ -385,6 +531,7 @@ export default function UploadPage() {
             if (type === 'tasks') setTasks(cleanedData);
             
             setIsLoading(false);
+            router.push('/validate');
           }
         });
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
@@ -413,6 +560,7 @@ export default function UploadPage() {
         if (type === 'tasks') setTasks(cleanedData);
         
         setIsLoading(false);
+        router.push('/validate');
       }
     };
     reader.readAsBinaryString(file);
@@ -441,17 +589,25 @@ export default function UploadPage() {
   const allFilesUploaded = fileStates.clients.isUploaded && fileStates.workers.isUploaded && fileStates.tasks.isUploaded;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Data Alchemist</h1>
-          <p className="text-lg text-gray-600 mb-8">
-            Transform your messy spreadsheets into clean, validated data
+    <div className="flex w-[80vw] min-h-screen bg-background">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Sparkles className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Data Alchemist
+            </h1>
+          </div>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Transform your messy spreadsheets into clean, validated data with intelligent processing
           </p>
           
           {/* Clear Data Button */}
           {data.isDataLoaded && (
-            <div className="mb-6">
+            <div className="mb-8">
               <button
                 onClick={() => {
                   clearData();
@@ -461,7 +617,9 @@ export default function UploadPage() {
                     tasks: { file: null, data: [], isUploaded: false }
                   });
                 }}
-                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-xl
+                  text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 
+                  transition-all duration-200 hover:shadow-md"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Clear All Data & Start Over
@@ -470,23 +628,23 @@ export default function UploadPage() {
           )}
           
           {/* Upload Method Selector */}
-          <div className="flex justify-center space-x-1 mb-8">
+          <div className="inline-flex bg-muted p-1 rounded-xl mb-10">
             <button
               onClick={() => setUploadMethod('individual')}
-              className={`px-6 py-3 text-sm font-medium rounded-l-lg ${
+              className={`px-8 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
                 uploadMethod === 'individual'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Individual Files
             </button>
             <button
               onClick={() => setUploadMethod('single')}
-              className={`px-6 py-3 text-sm font-medium rounded-r-lg ${
+              className={`px-8 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
                 uploadMethod === 'single'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Single File (Multiple Sheets)
@@ -495,9 +653,9 @@ export default function UploadPage() {
         </div>
 
         {uploadMethod === 'individual' ? (
-          <div className="space-y-8">
+          <div className="space-y-10">
             {/* Individual File Upload */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <FileUploadCard
                 fileType="clients"
                 icon={Users}
@@ -526,25 +684,46 @@ export default function UploadPage() {
 
             {/* Progress and Continue Button */}
             {(fileStates.clients.isUploaded || fileStates.workers.isUploaded || fileStates.tasks.isUploaded) && (
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Upload Progress</h3>
-                  <span className="text-sm text-gray-500">
-                    {Object.values(fileStates).filter(f => f.isUploaded).length}/3 files uploaded
-                  </span>
+              <div className="bg-card rounded-2xl border shadow-lg p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-foreground">Upload Progress</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-32 bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(Object.values(fileStates).filter(f => f.isUploaded).length / 3) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {Object.values(fileStates).filter(f => f.isUploaded).length}/3
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="space-y-2 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                   {Object.entries(fileStates).map(([type, state]) => (
-                    <div key={type} className="flex items-center space-x-3">
+                    <div key={type} className={`
+                      flex items-center space-x-3 p-4 rounded-xl border transition-all duration-200
+                      ${state.isUploaded 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-muted/50 border-border'
+                      }
+                    `}>
                       {state.isUploaded ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <CheckCircle className="h-5 w-5 text-green-600" />
                       ) : (
-                        <AlertCircle className="h-5 w-5 text-gray-400" />
+                        <AlertCircle className="h-5 w-5 text-muted-foreground" />
                       )}
-                      <span className={`capitalize ${state.isUploaded ? 'text-green-700' : 'text-gray-500'}`}>
-                        {type} {state.isUploaded ? `(${state.data.length} records)` : '- Not uploaded'}
-                      </span>
+                      <div>
+                        <span className={`capitalize font-medium ${
+                          state.isUploaded ? 'text-green-800' : 'text-muted-foreground'
+                        }`}>
+                          {type}
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          {state.isUploaded ? `${state.data.length.toLocaleString()} records` : 'Not uploaded'}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -553,10 +732,11 @@ export default function UploadPage() {
                   <div className="text-center">
                     <button
                       onClick={handleContinue}
-                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                      className="inline-flex items-center px-8 py-4 text-base font-semibold rounded-xl
+                        bg-green-600 text-white hover:bg-green-700 transition-all duration-200 
+                        shadow-lg hover:shadow-xl hover:scale-105"
                     >
-                      <ArrowRight className="h-5 w-5 mr-2" />
-                      Continue to Validation
+                      Continue
                     </button>
                   </div>
                 )}
@@ -564,13 +744,15 @@ export default function UploadPage() {
             )}
           </div>
         ) : (
-          <MultiFileUpload
-            onComplete={handleSingleFileComplete}
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
+          <MultiFileUpload 
+            onComplete={handleSingleFileComplete} 
+            isLoading={isLoading} 
+            setIsLoading={setIsLoading} 
           />
         )}
       </div>
     </div>
   );
 }
+
+          

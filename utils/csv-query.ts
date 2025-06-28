@@ -1,4 +1,5 @@
-import { useData } from "@/contexts/DataContext";
+
+import { DataState, useData } from "@/contexts/DataContext";
 
 interface FilterCriteria {
   field: string;
@@ -15,9 +16,9 @@ interface QueryIntent {
   limit?: number;
 }
 
-export const executeQuery = (intent: QueryIntent): any[] => {
+export const executeQuery = (intent: QueryIntent,data:DataState): any[] => {
     let reData: any[] = [];
-    const {data} = useData();   
+    // const {data} = useData();   
     
     switch (intent.entity) {
       case 'clients':

@@ -4,11 +4,18 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Client, Worker, Task } from '@/utils/validation';
 import { Rule } from '@/utils/rule';
 
+export interface Priorities {
+  PriorityLevel: number;
+  Fairness: number;
+  Fulfillment: number;
+}
+
 export interface DataState {
   clients: Client[];
   workers: Worker[];
   tasks: Task[];
   rules: Rule[];
+  priorities: Priorities;
   isDataLoaded: boolean;
 }
 
@@ -18,6 +25,7 @@ interface DataContextType {
   setWorkers: (workers: Worker[]) => void;
   setTasks: (tasks: Task[]) => void;
   setRules: (rules: Rule[]) => void;
+  setPriorities: (priorities: Priorities) => void;
   clearData: () => void;
   saveToLocalStorage: () => void;
   loadFromLocalStorage: () => boolean;
@@ -33,6 +41,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     workers: [],
     tasks: [],
     rules: [],
+    priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
     isDataLoaded: false
   });
 
@@ -57,12 +66,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, rules }));
   };
 
+  const setPriorities = (priorities: Priorities) => {
+    setData(prev => ({ ...prev, priorities }));
+  };
+
   const clearData = () => {
     setData({
       clients: [],
       workers: [],
       tasks: [],
       rules: [],
+      priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
       isDataLoaded: false
     });
     localStorage.removeItem(STORAGE_KEY);
@@ -111,6 +125,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setWorkers,
       setTasks,
       setRules,
+      setPriorities,
       clearData,
       saveToLocalStorage,
       loadFromLocalStorage
