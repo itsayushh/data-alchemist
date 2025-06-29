@@ -1,5 +1,5 @@
 'use client'
-import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder, Scale } from "lucide-react"
+import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder, Scale, Bus } from "lucide-react"
 
 import {
     Sidebar,
@@ -12,32 +12,60 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { title } from "process"
 
-// Menu items.
-const items = [
-    {
+
+const sidebarItems = {
+    Home:[{
         title: "Home",
         url: "/",
         icon: Home,
-    },
+    }],
+    Data:[
+        {
+            title: "Validate",
+            url: '/validate',   
+            icon: DatabaseZap
+        },
+        {
+            title: "Query",
+            url: '/query',
+            icon: BotMessageSquare
+        }
+    ],
+    Business:[
+        {
+            title: 'Rules',
+            url: '/rules',
+            icon: BrainCircuit
+        },
+        {
+            title: 'Prioritization',
+            url: '/prioritization',
+            icon: Scale
+        }
+    ]
+}
+// Menu items.
+const items = [
     {
-        title: "Validate Data",
+        title: "Data Validation",
         url: "/validate",
         icon: DatabaseZap,
     },
     {
-        title: "AI Assistant",
+        title: "Data Query",
         url: "/ai",
         icon: BotMessageSquare,
     },
     {
-        title: "Business Intelligence",
+        title: "Business Rules",
         url: "/rules",
         icon: BrainCircuit,
     },
     {
-        title: "Prioritization",
+        title: "Prioritization & Weights",
         url: "/prioritization",
         icon: Scale,
     },
@@ -50,6 +78,7 @@ const items = [
 
 export function AppSidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     return (
         <Sidebar aria-label="Main application sidebar" className="flex flex-col h-full" collapsible="icon">
             <SidebarHeader>
@@ -57,10 +86,10 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             aria-label="Data Alchemist Home"
-                            className="flex items-center gap-2 text-lg font-semibold tracking-wide h-11"
+                            className="flex items-center gap-2 text-lg font-semibold tracking-wide h-11 hover:bg-transparent hover:text-foreground"
                         >
-                            <div className="bg-background text-foreground flex aspect-square size-5 items-center justify-center rounded-lg hover:bg-accent">
-                                <FileStack className="flex-shrink-0 size-6 hover:bg-accent" />
+                            <div className="flex aspect-square size-5 items-center justify-center">
+                            <FileStack className="flex-shrink-0 size-6 hover:bg-accent" />
                             </div>
                             Data Alchemist
                         </SidebarMenuButton>
@@ -76,14 +105,11 @@ export function AppSidebar() {
                                 const Icon = item.icon
                                 return (
                                     <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild isActive={item.url === pathname}>
-                                            <a
-                                                href={item.url}
-                                                className="flex items-center gap-3 px-4 py-2 rounded-md text-gray-700 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                                            >
+                                        <SidebarMenuButton asChild isActive={item.url === pathname} onClick={() => {router.push(item.url)}}>
+                                            <div className="">
                                                 <Icon size={20} className="flex-shrink-0" />
                                                 <span>{item.title}</span>
-                                            </a>
+                                            </div>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )

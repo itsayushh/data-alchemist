@@ -253,9 +253,9 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   }
 
   return (
-    <div className="bg-muted border">
+    <div className="bg-muted ">
       {/* Header */}
-      <div className="px-6 py-4 border-b">
+      <div className="px-6 py-4 border-b bg-background">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
@@ -273,7 +273,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                 placeholder="Search all columns..."
                 value={globalSearch}
                 onChange={(e) => handleGlobalSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                className="pl-10 pr-4 py-2 border  rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
               />
               {globalSearch && (
                 <button
@@ -342,7 +342,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-neutral-200">
+        <table className="min-w-full divide-y">
           <thead className="bg-muted">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-forground uppercase tracking-wider">
@@ -404,7 +404,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                               type="text"
                               value={row[column.key] ?? ''}
                               onChange={(e) => onEdit(actualIndex, column.key, e.target.value)}
-                              className={`w-full border rounded p-2 text-sm bg-foreground/3 ${cellClass.replace('focus:ring-blue-500 focus:border-blue-500', 'focus:ring-primary focus:border-primary')}`}
+                              className={`w-full border text-foreground/90  rounded p-2 text-sm bg-foreground/3`}
                             />
                           {validationIcon && (
                             <div className="absolute right-2 top-1/2 transform -translate-y-1/2">

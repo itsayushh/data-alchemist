@@ -196,7 +196,7 @@ const ValidationPanel = ({
             <CardContent className="flex-1 flex flex-col gap-0 p-0">
                 {/* Quick Fixes Section - Now with Clear Visual Separation */}
                 <div className="border-b-2 border-primary/20 bg-secondary">
-                    <div className="p-4">
+                    <div className="p-4 bg-background">
                         <div className="flex items-center gap-2 mb-4">
                             <h3 className="font-semibold text-base">Quick Fixes</h3>
                         </div>
@@ -421,7 +421,7 @@ const ValidationPanel = ({
                 </div>
 
                 {/* Issues Section - Now with Clear Visual Separation */}
-                <div className="flex-1 flex flex-col bg-muted">
+                <div className="flex-1 flex flex-col">
                     <div className="p-4 border-b">
                         <div className="flex items-center gap-2 mb-4">
                             <h3 className="font-semibold text-base">Validation Issues</h3>
@@ -442,7 +442,7 @@ const ValidationPanel = ({
                                 <select
                                     value={selectedSeverity}
                                     onChange={(e) => setSelectedSeverity(e.target.value)}
-                                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:ring-2 focus:ring-ring focus:border-ring"
+                                    className="flex-1 px-3 py-2 text-sm border border-input bg-muted rounded-md focus:ring-2 focus:ring-ring focus:border-ring"
                                 >
                                     <option value="all">All Issues</option>
                                     <option value="error">Errors Only</option>
@@ -453,7 +453,7 @@ const ValidationPanel = ({
                     </div>
 
                     {/* Issues List */}
-                    <div className="flex-1 overflow-hidden p-4">
+                    <div className="flex-1 overflow-hidden p-4 bg-background">
                         {sortedCategories.length > 0 ? (
                             <div className="space-y-2 h-full overflow-y-auto">
                                 {sortedCategories.map((category) => {
@@ -461,7 +461,7 @@ const ValidationPanel = ({
                                     const isExpanded = expandedCategories.has(category);
 
                                     return (
-                                        <div key={category} className="overflow-hidden bg-background rounded-lg ">
+                                        <div key={category} className="overflow-hidden bg-muted border rounded-lg ">
                                             <button
                                                 onClick={() => {
                                                     const newExpanded = new Set(expandedCategories);
@@ -472,7 +472,7 @@ const ValidationPanel = ({
                                                     }
                                                     setExpandedCategories(newExpanded);
                                                 }}
-                                                className="w-full p-3 text-left flex items-center justify-between hover:bg-foreground/10 transition-colors"
+                                                className="w-full p-3 text-left flex items-center justify-between hover:bg-muted/50 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     {getCategoryIcon(category)}
@@ -491,17 +491,12 @@ const ValidationPanel = ({
                                             </button>
 
                                             {isExpanded && (
-                                                <div className="border-t bg-muted/20 max-h-[35vh] overflow-auto">
+                                                <div className="border-t bg-muted/60 max-h-[35vh] overflow-auto">
                                                     <div className="p-3 space-y-2 overflow-auto">
                                                         {categoryIssues.map((issue, index) => (
-                                                            <div key={index} className="p-3 bg-background border-b-2">
+                                                            <Card key={index} className="p-3 bg-background rounded-lg">
                                                                 <div className="flex items-start justify-between gap-3">
                                                                     <div className="flex items-start gap-3 flex-1">
-                                                                        {issue.severity === 'error' ? (
-                                                                            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                                                                        ) : (
-                                                                            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                                                                        )}
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="font-medium text-sm leading-tight mb-1">
                                                                                 {issue.message}
@@ -533,7 +528,7 @@ const ValidationPanel = ({
                                                                         </Button>
                                                                     )}
                                                                 </div>
-                                                            </div>
+                                                            </Card>
                                                         ))}
                                                     </div>
                                                 </div>

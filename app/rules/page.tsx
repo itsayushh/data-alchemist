@@ -35,6 +35,7 @@ import {
   isCacheValid 
 } from "@/lib/client-cache"
 import { BusinessRuleValidator, type RuleValidationResult, type BusinessRule } from "@/utils/rule-validation"
+import { Card } from "@/components/ui/card"
 
 const RuleInputUI: React.FC = () => {
   // Get data from context instead of stub data
@@ -450,11 +451,12 @@ const RuleInputUI: React.FC = () => {
               <p className="text-muted-foreground">Configure business rules for resource allocation and task scheduling</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="bg-card px-4 py-2 rounded-lg shadow-sm border border-border">
+              <div className="bg-card p-2 rounded-lg shadow-sm border border-border">
                 <span className="text-sm text-muted-foreground">Active Rules: </span>
                 <span className="font-medium text-card-foreground">{rules.length}</span>
               </div>
-              <button
+              <Button
+                variant="outline"
                 onClick={async () => {
                   setIsValidating(true)
                   for (const rule of rules) {
@@ -463,19 +465,19 @@ const RuleInputUI: React.FC = () => {
                   setIsValidating(false)
                 }}
                 disabled={rules.length === 0 || isValidating}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-medium"
               >
                 <Check size={16} />
                 {isValidating ? 'Validating...' : 'Validate All'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={exportRulesConfig}
                 disabled={rules.length === 0}
-                className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-medium"
+                className="flex items-center gap-2 bg-primary text-primary-foreground p-2 rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-medium"
               >
                 <Download size={18} />
-                Export Configuration
-              </button>
+                Export Rules
+              </Button>
             </div>
           </div>
         </div>
@@ -488,8 +490,8 @@ const RuleInputUI: React.FC = () => {
                   <Sparkles className="h-5 w-5 text-accent-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-accent-foreground">AI Rule Creator</h3>
-                  <p className="text-sm text-gray-600">Describe your rule in plain English and let AI create it for you</p>
+                  <h3 className="text-lg font-semibold text-foreground">AI Rule Creator</h3>
+                  <p className="text-sm text-forground/20">Describe your rule in plain English and let AI create it for you</p>
                 </div>
               </div>
               <Button
@@ -510,7 +512,7 @@ const RuleInputUI: React.FC = () => {
             {showAIRuleCreator && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ai-prompt" className="text-sm font-semibold text-gray-700">Describe your rule</Label>
+                  <Label htmlFor="ai-prompt" className="text-sm font-semibold text-foreground">Describe your rule</Label>
                   <div className="flex gap-2">
                     <Textarea
                       id="ai-prompt"
@@ -521,13 +523,14 @@ const RuleInputUI: React.FC = () => {
                       className="w-full pl-5 pr-4 py-3 border border-foreground rounded-lg"
                     />
                     <Button
+                      variant="ghost"
                       onClick={handleAIRuleCreation}
                       disabled={!aiRulePrompt.trim() || isCreatingAIRule}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                      className="flex items-center gap-2 bg-primary text-primary-foreground"
                     >
                       {isCreatingAIRule ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 "></div>
                           Creating...
                         </>
                       ) : (
@@ -543,7 +546,7 @@ const RuleInputUI: React.FC = () => {
                 {/* Recommended rules based on data */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-gray-700">
+                    <Label className="text-sm font-medium text-foreground">
                       {isLoadingSuggestions ? 'Analyzing your data...' : 'Recommended rules for your data:'}
                       {ruleSuggestions && !isLoadingSuggestions && (
                         <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
@@ -588,13 +591,7 @@ const RuleInputUI: React.FC = () => {
                           <button
                             key={index}
                             onClick={() => setAiRulePrompt(suggestion.prompt)}
-                            className={`text-xs px-3 py-2 border rounded-lg hover:bg-gray-50 text-left transition-colors ${
-                              suggestion.priority === 'high' 
-                                ? 'bg-blue-50 border-blue-200 text-blue-800' 
-                                : suggestion.priority === 'medium'
-                                ? 'bg-green-50 border-green-200 text-green-800'
-                                : 'bg-gray-50 border-gray-200 text-gray-600'
-                            }`}
+                            className={`text-xs p-3 border rounded-xl bg-background/60 hover:bg-secondary text-left transition-colors text-foreground`}
                           >
                             <div className="font-medium text-sm">{suggestion.prompt}</div>
                             <div className="text-xs opacity-75 mt-1 flex items-center justify-between">
@@ -611,7 +608,7 @@ const RuleInputUI: React.FC = () => {
                         ))}
                       </div>
                       {ruleSuggestions.dataInsights && (
-                        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2">
+                        <div className="text-xs text-foreground bg-background/60 p-2 rounded mt-2">
                           <strong>Data overview:</strong> {ruleSuggestions.dataInsights.commonSkills?.length > 0 && 
                             `Skills: ${ruleSuggestions.dataInsights.commonSkills.join(', ')} • `}
                           Priority: {ruleSuggestions.dataInsights.priorityDistribution} • 
@@ -662,7 +659,7 @@ const RuleInputUI: React.FC = () => {
                       </Badge>
                     </div>
                     
-                    <p className="text-sm text-gray-700 mb-3">
+                    <p className="text-sm text-foreground mb-3">
                       {aiRuleResult.explanation}
                     </p>
 
@@ -719,7 +716,7 @@ const RuleInputUI: React.FC = () => {
                       className={`p-4 rounded-lg border-dotted text-left transition-all border-foreground border-2 ${
                         activeRuleType === type.key
                           ? "border-primary bg-primary/10 shadow-sm"
-                          : "hover:border-border/80 hover:bg-accent hover:text-accent-foreground "
+                          : "hover:border-border/80 hover:bg-primary/20 hover:text-foreground "
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -825,8 +822,8 @@ const RuleInputUI: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-card-foreground mb-2">Rule Name</label>
-                          <input
+                          <Label className="block text-sm font-medium text-card-foreground mb-2">Rule Name</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., Enterprise Client Slots"
                             value={slotRestrictionForm.name}
@@ -835,48 +832,55 @@ const RuleInputUI: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Group Type</label>
-                          <select
+                          <Label className="block text-sm font-medium text-foreground mb-2">Group Type</Label>
+                          <Select
                             value={slotRestrictionForm.groupType}
-                            onChange={(e) =>
+                            onValueChange={(e) =>
                               setSlotRestrictionForm((prev) => ({
                                 ...prev,
-                                groupType: e.target.value as "client" | "worker",
+                                groupType: e as "client" | "worker",
                                 groupId: "", // Reset group ID when type changes
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           >
-                            <option value="client">Client Group</option>
-                            <option value="worker">Worker Group</option>
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select Group Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="client">Client Group</SelectItem>
+                              <SelectItem value="worker">Worker Group</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
-                          <select
+                          <Label className="block text-sm font-medium text-foreground mb-2">Group</Label>
+                          <Select
                             value={slotRestrictionForm.groupId}
-                            onChange={(e) => setSlotRestrictionForm((prev) => ({ ...prev, groupId: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                            onValueChange={(e) => setSlotRestrictionForm((prev) => ({ ...prev, groupId: e }))}
                           >
-                            <option value="">Select {slotRestrictionForm.groupType} group</option>
-                            {slotRestrictionForm.groupType === "client"
-                              ? [...new Set(clients.map((c) => c.GroupTag))].map((group) => (
-                                  <option key={group} value={group}>
-                                    {group}
-                                  </option>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={`Select ${slotRestrictionForm.groupType} group`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {slotRestrictionForm.groupType === "client"
+                                ? [...new Set(clients.map((c) => c.GroupTag))].map((group) => (
+                                    <SelectItem key={group} value={group}>
+                                      {group}
+                                    </SelectItem>
                                 ))
                               : [...new Set(workers.map((w) => w.WorkerGroup))].map((group) => (
-                                  <option key={group} value={group}>
+                                  <SelectItem key={group} value={group}>
                                     {group}
-                                  </option>
+                                  </SelectItem>
                                 ))}
-                          </select>
+                              </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-card-foreground mb-2">Min Common Slots</label>
-                          <input
+                          <Label className="block text-sm font-medium text-card-foreground mb-2">Min Common Slots</Label>
+                          <Input
                             type="number"
                             min="1"
                             value={slotRestrictionForm.minCommonSlots}
@@ -890,8 +894,8 @@ const RuleInputUI: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-card-foreground mb-2">Description (Optional)</label>
-                          <input
+                          <Label className="block text-sm font-medium text-card-foreground mb-2">Description (Optional)</Label>
+                          <Input
                             type="text"
                             placeholder="Describe the slot restriction..."
                             value={slotRestrictionForm.description}
@@ -902,14 +906,15 @@ const RuleInputUI: React.FC = () => {
                           />
                         </div>
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => addRule("slotRestriction")}
                         disabled={!slotRestrictionForm.name || !slotRestrictionForm.groupId}
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
                         <Plus size={16} />
                         Add Slot Restriction
-                      </button>
+                      </Button>
                     </div>
                   )}
 
@@ -921,33 +926,35 @@ const RuleInputUI: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Rule Name</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., Backend Team Load Limit"
                             value={loadLimitForm.name}
                             onChange={(e) => setLoadLimitForm((prev) => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Worker Group</label>
-                          <select
+                          <label className="block text-sm font-medium text-foreground mb-2">Worker Group</label>
+                          <Select
                             value={loadLimitForm.workerGroup}
-                            onChange={(e) => setLoadLimitForm((prev) => ({ ...prev, workerGroup: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                            onValueChange={(e) => setLoadLimitForm((prev) => ({ ...prev, workerGroup: e }))}
                           >
-                            <option value="">Select Worker Group</option>
-                            {[...new Set(workers.map((w) => w.WorkerGroup))].map((group) => (
-                              <option key={group} value={group}>
-                                {group}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select Worker Group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                  {[...new Set(workers.map((w) => w.WorkerGroup))].map((group) => (
+                                    <SelectItem key={group} value={group}>
+                                      {group}
+                                    </SelectItem>
+                                  ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-card-foreground mb-2">Max Slots Per Phase</label>
-                          <input
+                          <Label className="block text-sm font-medium text-card-foreground mb-2">Max Slots Per Phase</Label>
+                          <Input
                             type="number"
                             min="1"
                             value={loadLimitForm.maxSlotsPerPhase}
@@ -962,8 +969,8 @@ const RuleInputUI: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-card-foreground mb-2">Description (Optional)</label>
-                        <input
+                        <Label className="block text-sm font-medium text-card-foreground mb-2">Description (Optional)</Label>
+                        <Input
                           type="text"
                           placeholder="Describe the load limit..."
                           value={loadLimitForm.description}
@@ -971,56 +978,59 @@ const RuleInputUI: React.FC = () => {
                           className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring bg-background text-foreground"
                         />
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => addRule("loadLimit")}
                         disabled={!loadLimitForm.name || !loadLimitForm.workerGroup}
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
                         <Plus size={16} />
                         Add Load Limit
-                      </button>
+                      </Button>
                     </div>
                   )}
 
                   {activeRuleType === "phaseWindow" && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Clock size={20} className="text-gray-600" />
-                        <h3 className="font-medium text-gray-900">Phase Window Rule Configuration</h3>
+                        <Clock size={20} className="text-foreground" />
+                        <h3 className="font-medium text-foreground">Phase Window Rule Configuration</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Rule Name</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., UI Development Phase Window"
                             value={phaseWindowForm.name}
                             onChange={(e) => setPhaseWindowForm((prev) => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Task</label>
-                          <select
+                          <Label className="block text-sm font-medium text-foreground mb-2">Task</Label>
+                          <Select
                             value={phaseWindowForm.taskId}
-                            onChange={(e) => setPhaseWindowForm((prev) => ({ ...prev, taskId: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                            onValueChange={(value) => setPhaseWindowForm((prev) => ({ ...prev, taskId: value }))}
                           >
-                            <option value="">Select Task</option>
-                            {tasks.map((task) => (
-                              <option key={task.TaskID} value={task.TaskID}>
-                                {task.TaskID} - {task.TaskName}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select Task" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tasks.map((task) => (
+                                <SelectItem key={task.TaskID} value={task.TaskID}>
+                                  {task.TaskID} - {task.TaskName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Allowed Phases</label>
+                        <Label className="block text-sm font-medium text-foreground mb-2">Allowed Phases</Label>
                         <div className="flex flex-wrap gap-3">
                           {[1, 2, 3, 4, 5].map((phase) => (
-                            <label key={phase} className="flex items-center gap-2 cursor-pointer">
-                              <input
+                            <Label key={phase} className="flex items-center gap-2 cursor-pointer">
+                              <Input
                                 type="checkbox"
                                 checked={phaseWindowForm.allowedPhases.includes(phase)}
                                 onChange={(e) => {
@@ -1036,76 +1046,75 @@ const RuleInputUI: React.FC = () => {
                                     }))
                                   }
                                 }}
-                                className="rounded text-gray-900 focus:ring-gray-900"
                               />
-                              <span className="text-sm text-gray-700">Phase {phase}</span>
-                            </label>
+                              <span className="text-sm text-foreground">Phase {phase}</span>
+                            </Label>
                           ))}
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
-                        <input
+                        <Label className="block text-sm font-medium text-foreground mb-2">Description (Optional)</Label>
+                        <Input
                           type="text"
                           placeholder="Describe the phase window..."
                           value={phaseWindowForm.description}
                           onChange={(e) => setPhaseWindowForm((prev) => ({ ...prev, description: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                         />
                       </div>
-                      <button
+                      <Button
+                        variant={"ghost"}
                         onClick={() => addRule("phaseWindow")}
                         disabled={
                           !phaseWindowForm.name || !phaseWindowForm.taskId || phaseWindowForm.allowedPhases.length === 0
                         }
-                        className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
                         <Plus size={16} />
                         Add Phase Window
-                      </button>
+                      </Button>
                     </div>
                   )}
 
                   {activeRuleType === "patternMatch" && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Search size={20} className="text-gray-600" />
-                        <h3 className="font-medium text-gray-900">Pattern Match Rule Configuration</h3>
+                        <Search size={20} className="text-foreground" />
+                        <h3 className="font-medium text-foreground">Pattern Match Rule Configuration</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Rule Name</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., Task Priority Pattern"
                             value={patternMatchForm.name}
                             onChange={(e) => setPatternMatchForm((prev) => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                      
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Regex Pattern</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Regex Pattern</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., ^T[0-9]{3}$"
                             value={patternMatchForm.regex}
                             onChange={(e) => setPatternMatchForm((prev) => ({ ...prev, regex: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono text-sm bg-white"
+                            // className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono text-sm bg-white"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Template</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., priority_boost"
                             value={patternMatchForm.template}
                             onChange={(e) => setPatternMatchForm((prev) => ({ ...prev, template: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                      
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Parameters (JSON)</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Parameters (JSON)</Label>
+                          <Input
                             type="text"
                             placeholder='{"boost": 1.5}'
                             value={JSON.stringify(patternMatchForm.parameters)}
@@ -1117,51 +1126,51 @@ const RuleInputUI: React.FC = () => {
                                 // Invalid JSON, ignore
                               }
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono text-sm bg-white"
+                            // className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono text-sm bg-white"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <textarea
+                        <Label className="block text-sm font-medium text-foreground mb-2">Description</Label>
+                        <Textarea
                           placeholder="Describe the pattern matching rule..."
                           value={patternMatchForm.description}
                           onChange={(e) => setPatternMatchForm((prev) => ({ ...prev, description: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
+                    
                           rows={2}
                         />
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => addRule("patternMatch")}
                         disabled={!patternMatchForm.name || !patternMatchForm.regex}
                         className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
                         <Plus size={16} />
                         Add Pattern Rule
-                      </button>
+                      </Button>
                     </div>
                   )}
 
                   {activeRuleType === "precedenceOverride" && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp size={20} className="text-gray-600" />
-                        <h3 className="font-medium text-gray-900">Precedence Override Rule Configuration</h3>
+                        <TrendingUp size={20} className="text-foreground" />
+                        <h3 className="font-medium text-foreground">Precedence Override Rule Configuration</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Rule Name</Label>
+                          <Input
                             type="text"
                             placeholder="e.g., Critical Task Priority"
                             value={precedenceForm.name}
                             onChange={(e) => setPrecedenceForm((prev) => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
-                          <input
+                          <Label className="block text-sm font-medium text-foreground mb-2">Priority Level</Label>
+                          <Input
                             type="number"
                             min="1"
                             max="10"
@@ -1172,13 +1181,12 @@ const RuleInputUI: React.FC = () => {
                                 priority: Number.parseInt(e.target.value) || 1,
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Global Rules</label>
-                        <textarea
+                        <Label className="block text-sm font-medium text-foreground mb-2">Global Rules</Label>
+                        <Textarea
                           placeholder="Enter global rule IDs (one per line)..."
                           value={precedenceForm.globalRules.join("\n")}
                           onChange={(e) =>
@@ -1187,13 +1195,12 @@ const RuleInputUI: React.FC = () => {
                               globalRules: e.target.value.split("\n").filter(Boolean),
                             }))
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           rows={2}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Specific Rules</label>
-                        <textarea
+                        <Label className="block text-sm font-medium text-foreground mb-2">Specific Rules</Label>
+                        <Textarea
                           placeholder="Enter specific rule IDs (one per line)..."
                           value={precedenceForm.specificRules.join("\n")}
                           onChange={(e) =>
@@ -1202,28 +1209,27 @@ const RuleInputUI: React.FC = () => {
                               specificRules: e.target.value.split("\n").filter(Boolean),
                             }))
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                           rows={2}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <input
+                        <Label className="block text-sm font-medium text-foreground mb-2">Description</Label>
+                        <Input
                           type="text"
                           placeholder="Describe the precedence rule..."
                           value={precedenceForm.description}
                           onChange={(e) => setPrecedenceForm((prev) => ({ ...prev, description: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                         />
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => addRule("precedenceOverride")}
                         disabled={!precedenceForm.name}
-                        className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        className="flex items-center gap-2 bg-prrimary text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
                         <Plus size={16} />
                         Add Precedence Rule
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1234,7 +1240,7 @@ const RuleInputUI: React.FC = () => {
           {/* Active Rules Panel */}
           <div className="space-y-6">
             <div className="bg-secondary rounded-lg shadow-sm border border-border">
-              <div className="p-6 border-b border-foreground/30">
+              <div className="p-3 border-b border-foreground/30">
                 <h2 className="text-lg font-medium text-foreground">Active Rules</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {rules.length === 0
@@ -1243,18 +1249,18 @@ const RuleInputUI: React.FC = () => {
                 </p>
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
+              <div className="bg-background max-h-96 overflow-y-auto">
                 {rules.length === 0 ? (
-                  <div className="p-6 text-center text-muted-foreground">
+                  <div className="p-3 text-center text-muted-foreground">
                     <AlertCircle size={48} className="mx-auto mb-4 text-muted-foreground/50" />
                     <p className="font-medium">No rules configured</p>
                     <p className="text-sm">Select a rule type to get started</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div className="flex flex-col divide-y divide-border p-4 gap-3">
                     {rules.map((rule) => (
-                      <div key={rule.id} className="p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
+                      <Card key={rule.id} className="p-4 bg-background hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{getRuleIcon(rule.type)}</span>
                             <div>
@@ -1289,7 +1295,7 @@ const RuleInputUI: React.FC = () => {
                         </div>
 
                         {/* Rule Details */}
-                        <div className="text-xs text-muted-foreground space-y-1">
+                        <div className="text-xs bg-muted p-2 rounded-lg text-muted-foreground space-y-1">
                           {rule.type === "coRun" && (
                             <div>
                               <span className="font-medium">Tasks: </span>
@@ -1398,7 +1404,7 @@ const RuleInputUI: React.FC = () => {
                             </div>
                           )
                         })()}
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}

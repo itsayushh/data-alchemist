@@ -57,36 +57,36 @@
   --card-foreground: oklch(0.9219 0 0);
   --popover: oklch(0.2686 0 0);
   --popover-foreground: oklch(0.9219 0 0);
-  --primary: oklch(0.6225 0.2041 259.9027);
+  --primary: oklch(0.5321 0.2211 261.0015);
   --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.2686 0 0);
   --secondary-foreground: oklch(0.9219 0 0);
   --muted: oklch(0.2686 0 0);
   --muted-foreground: oklch(0.7155 0 0);
-  --accent: oklch(0.3742 0.1844 263.9420);
-  --accent-foreground: oklch(0.8820 0.0588 253.9688);
-  --destructive: oklch(0.6496 0.2362 26.9032);
+  --accent: oklch(0.3259 0.1147 265.8600);
+  --accent-foreground: oklch(0.7291 0.1395 254.6416);
+  --destructive: oklch(0.5783 0.2301 28.5639);
   --destructive-foreground: oklch(1.0000 0 0);
   --border: oklch(0.3715 0 0);
   --input: oklch(0.3715 0 0);
-  --ring: oklch(0.6225 0.2041 259.9027);
-  --chart-1: oklch(0.7122 0.1526 254.9868);
-  --chart-2: oklch(0.6225 0.2041 259.9027);
-  --chart-3: oklch(0.5469 0.2507 262.8085);
-  --chart-4: oklch(0.4902 0.2693 263.7106);
-  --chart-5: oklch(0.4234 0.2370 263.9162);
+  --ring: oklch(0.5321 0.2211 261.0015);
+  --chart-1: oklch(0.6109 0.2005 256.9816);
+  --chart-2: oklch(0.5321 0.2211 261.0015);
+  --chart-3: oklch(0.4645 0.2011 262.7590);
+  --chart-4: oklch(0.4165 0.1822 264.5260);
+  --chart-5: oklch(0.3640 0.1512 265.8828);
   --sidebar: oklch(0.2046 0 0);
   --sidebar-foreground: oklch(0.9219 0 0);
-  --sidebar-primary: oklch(0.6225 0.2041 259.9027);
+  --sidebar-primary: oklch(0.5321 0.2211 261.0015);
   --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.3742 0.1844 263.9420);
-  --sidebar-accent-foreground: oklch(0.8820 0.0588 253.9688);
+  --sidebar-accent: oklch(0.3259 0.1147 265.8600);
+  --sidebar-accent-foreground: oklch(0.7291 0.1395 254.6416);
   --sidebar-border: oklch(0.3715 0 0);
-  --sidebar-ring: oklch(0.6225 0.2041 259.9027);
+  --sidebar-ring: oklch(0.5321 0.2211 261.0015);
   --font-sans: Inter, sans-serif;
   --font-serif: Source Serif 4, serif;
   --font-mono: JetBrains Mono, monospace;
-  --radius: 0.375rem;
+  --radius: 0.45rem;
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
@@ -96,6 +96,7 @@
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 }
+
 
 @theme inline {
   --color-background: var(--background);
@@ -134,6 +135,9 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
+  --font-inter: var(--font-inter);
+  --font-schibsted-grotesk: var(--font-schibsted-grotesk);
+  --font-bricolage-grotesk: var(--font-bricolage-grotesk);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -149,6 +153,8 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
 }
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

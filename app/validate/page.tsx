@@ -315,7 +315,7 @@ export default function ValidatePage() {
                                                 onClick={() => setActiveTab(tab)}
                                                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
                                                     activeTab === tab
-                                                        ? 'bg-accent text-foreground shadow-sm'
+                                                        ? 'bg-accent font-semibold text-accent-foreground shadow-sm'
                                                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                                                 }`}
                                             >
@@ -355,6 +355,7 @@ export default function ValidatePage() {
                                         type={activeTab}
                                         onEdit={(index, field, value) => handleEdit(activeTab, index, field, value)}
                                         validationResult={validationResult}
+                                        title={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                                     />
                                 )}
                             </div>

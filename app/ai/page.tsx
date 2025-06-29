@@ -5,6 +5,7 @@ import { useData } from '@/contexts/DataContext';
 import { getFilterFromPrompt, generateDataModification } from '@/lib/gemini';
 import { executeQuery } from '@/utils/csv-query';
 import { DataModificationPlan, executeDataModification, previewModification, validateModificationPlan } from '@/utils/data-modification';
+import { Button } from '@/components/ui/button';
 
 interface FilterCriteria {
   field: string;
@@ -135,47 +136,48 @@ const AIDataManagement = () => {
   ];
 
   return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">AI Data Management</h1>
+          <p className="text-muted-foreground">Query and modify your data using natural language</p>
+        </div>
 
-    <div className="flex flex-col mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Natural Language Data Retrieval</h1>
-        <p className="text-foreground/50">Search your data using plain English with Gemini AI</p>
-      </div>
-
-      {/* Search Interface */}
-      <div className="bg-secondary rounded-lg shadow-md p-6">
-        <div className="space-y-4">
-          <div className="flex space-x-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/70 w-5 h-5" />
+        {/* Search Interface */}
+        <div className="bg-card border border-border rounded-lg p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Search className="w-4 h-4 text-primary" />
+            <h2 className="font-medium text-foreground">Search Data</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex gap-3">
               <input
                 type="text"
-                placeholder="e.g., 'high priority clients' or 'workers with JavaScript skills'"
+                placeholder="Enter your query in natural language..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-3 border border-foreground rounded-lg"
+                className="flex-1 px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               />
+              <Button
+                variant="outline"
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Search
+              </Button>
             </div>
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/70 hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-              <span>Search</span>
-            </button>
-          </div>
 
-          {/* Sample Queries */}
-          <div className="space-y-2">
-            <p className="text-sm text-foreground/70">Try these sample queries:</p>
             <div className="flex flex-wrap gap-2">
               {sampleQueries.map((sampleQuery, index) => (
                 <button
                   key={index}
                   onClick={() => setQuery(sampleQuery)}
-                  className="px-3 py-1 text-sm bg-accent text-foreground rounded-full transition-colors"
+                  className="px-3 py-1 text-xs bg-muted hover:bg-muted/80 text-muted-foreground rounded-md"
                 >
                   {sampleQuery}
                 </button>
@@ -183,233 +185,281 @@ const AIDataManagement = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="font-medium text-red-800">Error</span>
+        {/* Error Display */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive" />
+              <span className="text-sm font-medium text-destructive">Error: {error}</span>
+            </div>
           </div>
-          <p className="text-red-700 mt-1">{error}</p>
-        </div>
-      )}
+        )}
 
-      {/* Query Intent Display */}
-      {queryIntent && (
-        <div className="bg-accent border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <Filter className="w-5 h-5 text-accent-foreground" />
-            <span className="font-medium text-accent-foreground">Query Analysis</span>
+        {/* Query Intent Display */}
+        {queryIntent && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Query Analysis</span>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Entity: </span>
+                <span className="font-medium text-foreground">{queryIntent.entity}</span>
+              </div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Filters: </span>
+                {queryIntent.filters.map((filter, index) => (
+                  <span key={index} className="inline-block bg-muted px-2 py-1 rounded text-xs mr-1">
+                    {filter.field} {filter.operator} "{filter.value}"
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-accent-foreground">
-            <p><strong>Entity:</strong> {queryIntent.entity}</p>
-            <p><strong>Filters:</strong></p>
-            <ul className="ml-4 space-y-1">
-              {queryIntent.filters.map((filter, index) => (
-                <li key={index}>
-                  {filter.field} {filter.operator} "{filter.value}"
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}  
+        )}  
 
-      {/* Results Display */}
-      {results.length > 0 && (
-        <div className="bg-muted rounded-lg shadow-sm p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="font-medium text-green-800">
-              Found {results.length} result{results.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-muted">
-                  {results.length > 0 && Object.keys(results[0]).map(key => (
-                    <th key={key} className="border px-4 py-2 text-left font-medium text-foreground">
-                      {key}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
-                    {Object.values(row).map((value, cellIndex) => (
-                      <td key={cellIndex} className="border border-gray-300 px-4 py-2 text-sm text-gray-700">
-                        {String(value)}
-                      </td>
+        {/* Results Display */}
+        {results.length > 0 && (
+          <div className="bg-card border border-border rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium">
+                  {results.length} result{results.length !== 1 ? 's' : ''} found
+                </span>
+              </div>
+            </div>
+            
+            <div className="border border-border rounded overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/50">
+                    {results.length > 0 && Object.keys(results[0]).map(key => (
+                      <th key={key} className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-r border-border last:border-r-0">
+                        {key}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Data Modification Interface */}
-      <div className="bg-secondary rounded-lg shadow-md p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Edit3 className="w-5 h-5 text-gray-600" />
-          <span className="font-medium text-gray-800">Data Modification</span>
-        </div>
-        <div className="space-y-4">
-          {/* Modification Query Input */}
-          <div className="relative">
-            <textarea
-              placeholder="Describe the modification, e.g., 'Add a new client named John Doe'"
-              value={modificationQuery}
-              onChange={(e) => setModificationQuery(e.target.value)}
-              className="w-full p-4 border border-foreground rounded-lg resize-none h-24"
-            />
-            <div className="absolute right-3 top-3 flex space-x-2">
-              <button
-                onClick={handleModificationAnalysis}
-                disabled={modificationLoading}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {modificationLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-                <span>Analyze</span>
-              </button>
-              <button
-                onClick={handleExecuteModification}
-                disabled={modificationLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {modificationLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                <span>Execute</span>
-              </button>
+                </thead>
+                <tbody>
+                  {results.map((row, index) => (
+                    <tr key={index} className="border-t border-border hover:bg-muted/30">
+                      {Object.values(row).map((value, cellIndex) => (
+                        <td key={cellIndex} className="px-3 py-2 text-sm text-foreground border-r border-border last:border-r-0">
+                          {String(value)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+        )}
 
-          {/* Modification Plan Display */}
-          {modificationPlan && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="font-medium text-blue-800 mb-2">Modification Plan</div>
-              <pre className="text-sm text-blue-700 whitespace-pre-wrap">{JSON.stringify(modificationPlan, null, 2)}</pre>
-            </div>
-          )}
-
-          {/* Preview Data Display */}
-          {previewData && (
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="font-medium text-green-800 mb-4">Preview Changes</div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">+{previewData.estimatedChanges.added}</div>
-                  <div className="text-sm text-green-800">Added</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">~{previewData.estimatedChanges.updated}</div>
-                  <div className="text-sm text-blue-800">Updated</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">-{previewData.estimatedChanges.deleted}</div>
-                  <div className="text-sm text-red-800">Deleted</div>
-                </div>
+        {/* Data Modification Interface */}
+        <div className="bg-card border border-border rounded-lg p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Edit3 className="w-4 h-4 text-primary" />
+            <h2 className="font-medium text-foreground">Modify Data</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="relative">
+              <textarea
+                placeholder="Describe your data modification..."
+                value={modificationQuery}
+                onChange={(e) => setModificationQuery(e.target.value)}
+                className="w-full p-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-none h-24"
+              />
+              <div className="absolute right-3 bottom-3 flex gap-2">
+                <button
+                  onClick={handleModificationAnalysis}
+                  disabled={modificationLoading || !modificationQuery.trim()}
+                  className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {modificationLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                  Analyze
+                </button>
+                {modificationPlan && (
+                  <button
+                    onClick={handleExecuteModification}
+                    disabled={modificationLoading}
+                    className="px-3 py-1 bg-green-600 text-white rounded-md text-xs font-medium hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <CheckCircle className="w-3 h-3" />
+                    Execute
+                  </button>
+                )}
               </div>
+            </div>
 
-              {previewData.warnings.length > 0 && (
-                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <h4 className="font-medium text-yellow-800 mb-1">Warnings:</h4>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    {previewData.warnings.map((warning: string, index: number) => (
-                      <li key={index}>• {warning}</li>
-                    ))}
-                  </ul>
+            <div className="flex flex-wrap gap-2">
+              {sampleModifications.map((sampleMod, index) => (
+                <button
+                  key={index}
+                  onClick={() => setModificationQuery(sampleMod)}
+                  className="px-3 py-1 text-xs bg-muted hover:bg-muted/80 text-muted-foreground rounded-md"
+                >
+                  {sampleMod}
+                </button>
+              ))}
+            </div>
+
+            {/* Modification Plan Display */}
+            {modificationPlan && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Eye className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Modification Plan</span>
                 </div>
-              )}
+                <pre className="text-xs text-foreground bg-background p-3 rounded border overflow-auto">
+                  {JSON.stringify(modificationPlan, null, 2)}
+                </pre>
+              </div>
+            )}
 
-              {previewData.affectedRecords.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-green-800 mb-2">Affected Records ({previewData.affectedRecords.length}):</h4>
-                  <div className="overflow-x-auto max-h-60">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead>
-                        <tr className="bg-muted">
-                          {previewData.affectedRecords.length > 0 && Object.keys(previewData.affectedRecords[0]).map((key: string) => (
-                            <th key={key} className="border px-4 py-2 text-left font-medium text-foreground">
-                              {key}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewData.affectedRecords.map((row: any, index: number) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
-                            {Object.values(row).map((value: any, cellIndex: number) => (
-                              <td key={cellIndex} className="border border-gray-300 px-4 py-2 text-sm text-gray-700">
-                                {String(value)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            {/* Preview Data Display */}
+            {previewData && (
+              <div className="bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Eye className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">Preview Changes</span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-green-600">+{previewData.estimatedChanges.added}</div>
+                    <div className="text-xs text-green-600">Added</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-blue-600">~{previewData.estimatedChanges.updated}</div>
+                    <div className="text-xs text-blue-600">Updated</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-red-600">-{previewData.estimatedChanges.deleted}</div>
+                    <div className="text-xs text-red-600">Deleted</div>
                   </div>
                 </div>
-              )}
 
-              <div className="mt-4 flex space-x-4">
-                <button
-                  onClick={handleExecuteModification}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
-                >
-                  <Play className="w-4 h-4" />
-                  <span>Execute Modification</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setModificationPlan(null);
-                    setPreviewData(null);
-                  }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
+                {previewData.warnings.length > 0 && (
+                  <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-800 dark:text-amber-400">Warnings</span>
+                    </div>
+                    <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                      {previewData.warnings.map((warning: string, index: number) => (
+                        <li key={index}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {previewData.affectedRecords.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                      Affected Records ({previewData.affectedRecords.length})
+                    </div>
+                    <div className="border border-border rounded overflow-hidden max-h-48 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/50 sticky top-0">
+                          <tr>
+                            {previewData.affectedRecords.length > 0 && Object.keys(previewData.affectedRecords[0]).map((key: string) => (
+                              <th key={key} className="px-2 py-1 text-left font-medium text-muted-foreground border-r border-border last:border-r-0">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.affectedRecords.map((row: any, index: number) => (
+                            <tr key={index} className="border-t border-border">
+                              {Object.values(row).map((value: any, cellIndex: number) => (
+                                <td key={cellIndex} className="px-2 py-1 text-foreground border-r border-border last:border-r-0">
+                                  {String(value)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExecuteModification}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    Execute
+                  </button>
+                  <button
+                    onClick={() => {
+                      setModificationPlan(null);
+                      setPreviewData(null);
+                    }}
+                    className="px-4 py-2 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Modification Error Display */}
+            {modificationError && (
+              <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Error: {modificationError}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Data Overview */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Database className="w-4 h-4 text-primary" />
+            <h2 className="font-medium text-foreground">Data Overview</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-blue-600 dark:text-blue-400">Clients</div>
+                  <div className="text-lg font-semibold text-blue-700 dark:text-blue-300">{data.clients.length}</div>
+                </div>
+                <Database className="w-5 h-5 text-blue-500" />
               </div>
             </div>
-          )}
-
-          {/* Modification Error Display */}
-          {modificationError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <span className="font-medium text-red-800">Error</span>
+            
+            <div className="bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-green-600 dark:text-green-400">Workers</div>
+                  <div className="text-lg font-semibold text-green-700 dark:text-green-300">{data.workers.length}</div>
+                </div>
+                <Database className="w-5 h-5 text-green-500" />
               </div>
-              <p className="text-red-700 mt-1">{modificationError}</p>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Data Overview */}
-      <div className="bg-secondary rounded-lg shadow-md p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Database className="w-5 h-5 text-gray-600" />
-          <span className="font-medium text-gray-800">Available Data</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="bg-blue-50 p-3 rounded">
-            <div className="font-medium text-blue-800">Clients</div>
-            <div className="text-blue-600">{data.clients.length} records</div>
-          </div>
-          <div className="bg-green-50 p-3 rounded">
-            <div className="font-medium text-green-800">Workers</div>
-            <div className="text-green-600">{data.workers.length} records</div>
-          </div>
-          <div className="bg-purple-50 p-3 rounded">
-            <div className="font-medium text-purple-800">Tasks</div>
-            <div className="text-purple-600">{data.tasks.length} records</div>
+            
+            <div className="bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-purple-600 dark:text-purple-400">Tasks</div>
+                  <div className="text-lg font-semibold text-purple-700 dark:text-purple-300">{data.tasks.length}</div>
+                </div>
+                <Database className="w-5 h-5 text-purple-500" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

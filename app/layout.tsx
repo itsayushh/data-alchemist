@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono, Inter, Schibsted_Grotesk } from "next/font/google";
 import { DataProvider } from "@/contexts/DataContext";
 import "./globals.css";
 import { SidebarProvider} from "@/components/ui/sidebar";
@@ -18,6 +18,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+})
+
+const schibstedGrotesk = Schibsted_Grotesk({
+  variable: "--font-schibsted-grotesk",
+  subsets: ["latin"],
+})
+
+const bricolageGrotesk = Bricolage_Grotesque({
+  variable: "--font-bricolage-grotesk",
+  subsets: ["latin"],
+})
+
 export const metadata: Metadata = {
   title: "Data Alchemist",
   description: "Transform your messy spreadsheets into clean, validated data",
@@ -30,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${schibstedGrotesk.variable} ${bricolageGrotesk.variable} font-schibsted-grotesk antialiased`}>
         <ThemeProvider
             attribute="class"
             defaultTheme="light"
