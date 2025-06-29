@@ -1,5 +1,5 @@
 'use client'
-import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder } from "lucide-react"
+import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder, Scale } from "lucide-react"
 
 import {
     Sidebar,
@@ -35,6 +35,11 @@ const items = [
         title: "Business Intelligence",
         url: "/rules",
         icon: BrainCircuit,
+    },
+    {
+        title: "Prioritization",
+        url: "/prioritization",
+        icon: Scale,
     },
     {
         title: "Settings",

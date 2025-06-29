@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FileText, Users, Briefcase, CheckCircle, AlertCircle, Download, AlertTriangle, Info, ArrowLeft, Filter, Search, RefreshCw, Eye, EyeOff, ChevronDown, ChevronRight, Zap, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
-import RuleInput from '../../components/rule-input';
 import { useData } from '@/contexts/DataContext';
 
 import {
@@ -18,6 +17,7 @@ import { Rule } from '../../utils/rule';
 import { ModernDataTable } from '@/components/data-table';
 import { fixValidationErrors } from '../../lib/gemini';
 import ValidationPanel from '@/components/validation-panel';
+import { createConsolidatedRulesConfig, exportConsolidatedRulesConfig } from '@/utils/consolidated-rules';
 
 // Main Component
 export default function ValidatePage() {
@@ -246,29 +246,18 @@ export default function ValidatePage() {
         });
 
         // Create and download rules.json
-        const rulesConfig = {
-            version: "1.0",
-            generatedAt: new Date().toISOString(),
-            entities: {
+        const rulesConfig = createConsolidatedRulesConfig(
+            {
                 clients: data.clients.length,
                 workers: data.workers.length,
                 tasks: data.tasks.length
             },
-            validationPassed: true,
-            rules: data.rules,
-            metadata: {
-                totalRules: data.rules.length,
-                ruleTypes: [...new Set(data.rules.map(rule => rule.type))]
-            }
-        };
+            true,
+            data.rules,
+            data.prioritizationConfig
+        );
 
-        const rulesBlob = new Blob([JSON.stringify(rulesConfig, null, 2)], { type: 'application/json' });
-        const rulesUrl = window.URL.createObjectURL(rulesBlob);
-        const rulesLink = document.createElement('a');
-        rulesLink.href = rulesUrl;
-        rulesLink.download = 'rules.json';
-        rulesLink.click();
-        window.URL.revokeObjectURL(rulesUrl);
+        exportConsolidatedRulesConfig(rulesConfig);
     };
 
 
@@ -360,11 +349,7 @@ export default function ValidatePage() {
 
                             {/* Data Content */}
                             <div className="p-0 ">
-                                {activeTab === 'rules' ? (
-                                    <div className="p-6">
-                                        <RuleInput />
-                                    </div>
-                                ) : (
+                                {(
                                     <ModernDataTable
                                         data={data[activeTab] as any[]}
                                         type={activeTab}

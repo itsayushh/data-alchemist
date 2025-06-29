@@ -10,12 +10,21 @@ export interface Priorities {
   Fulfillment: number;
 }
 
+export interface PrioritizationConfig {
+  weights: Priorities;
+  rankingOrder: string[];
+  selectedProfile: string;
+  customProfiles: Record<string, Priorities>;
+  pairwiseMatrix?: Record<string, Record<string, number>>;
+}
+
 export interface DataState {
   clients: Client[];
   workers: Worker[];
   tasks: Task[];
   rules: Rule[];
   priorities: Priorities;
+  prioritizationConfig: PrioritizationConfig;
   isDataLoaded: boolean;
   hiddenAISuggestions: any[];
 }
@@ -27,6 +36,7 @@ interface DataContextType {
   setTasks: (tasks: Task[]) => void;
   setRules: (rules: Rule[]) => void;
   setPriorities: (priorities: Priorities) => void;
+  setPrioritizationConfig: (config: PrioritizationConfig) => void;
   setHiddenAISuggestions: (suggestions: any[]) => void;
   clearData: () => void;
   saveToLocalStorage: () => void;
@@ -49,6 +59,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     tasks: [],
     rules: [],
     priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
+    prioritizationConfig: {
+      weights: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
+      rankingOrder: ['PriorityLevel', 'Fairness', 'Fulfillment'],
+      selectedProfile: 'balanced',
+      customProfiles: {},
+      pairwiseMatrix: undefined
+    },
     isDataLoaded: false,
     hiddenAISuggestions: []
   });
@@ -78,6 +95,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, priorities }));
   };
 
+  const setPrioritizationConfig = (prioritizationConfig: PrioritizationConfig) => {
+    setData(prev => ({ ...prev, prioritizationConfig }));
+  };
+
   const setHiddenAISuggestions = (suggestions: any[]) => {
     setData(prev => ({ ...prev, hiddenAISuggestions: suggestions }));
   };
@@ -89,6 +110,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       tasks: [],
       rules: [],
       priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
+      prioritizationConfig: {
+        weights: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
+        rankingOrder: ['PriorityLevel', 'Fairness', 'Fulfillment'],
+        selectedProfile: 'balanced',
+        customProfiles: {},
+        pairwiseMatrix: undefined
+      },
       isDataLoaded: false,
       hiddenAISuggestions: []
     });
@@ -166,6 +194,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setTasks,
       setRules,
       setPriorities,
+      setPrioritizationConfig,
       setHiddenAISuggestions,
       clearData,
       saveToLocalStorage,
