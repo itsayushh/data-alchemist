@@ -402,7 +402,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                         <div className="relative">
                           <input
                               type="text"
-                              value={row[column.key] || ''}
+                              value={row[column.key] ?? ''}
                               onChange={(e) => onEdit(actualIndex, column.key, e.target.value)}
                               className={`w-full border rounded p-2 text-sm bg-foreground/3 ${cellClass.replace('focus:ring-blue-500 focus:border-blue-500', 'focus:ring-primary focus:border-primary')}`}
                             />
