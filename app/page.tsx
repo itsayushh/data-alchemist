@@ -493,7 +493,6 @@ export default function UploadPage() {
   // Check if data is already loaded
   useEffect(() => {
     if (data.isDataLoaded) {
-      // If data is loaded, redirect to validation page
       router.push('/validate');
     }
   }, [data.isDataLoaded, router]);
@@ -530,8 +529,8 @@ export default function UploadPage() {
             if (type === 'workers') setWorkers(cleanedData);
             if (type === 'tasks') setTasks(cleanedData);
             
-            setIsLoading(false);
             router.push('/validate');
+            setIsLoading(false);
           }
         });
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
@@ -559,8 +558,8 @@ export default function UploadPage() {
         if (type === 'workers') setWorkers(cleanedData);
         if (type === 'tasks') setTasks(cleanedData);
         
-        setIsLoading(false);
         router.push('/validate');
+        setIsLoading(false);
       }
     };
     reader.readAsBinaryString(file);
@@ -589,8 +588,8 @@ export default function UploadPage() {
   const allFilesUploaded = fileStates.clients.isUploaded && fileStates.workers.isUploaded && fileStates.tasks.isUploaded;
 
   return (
-    <div className="flex w-[80vw] min-h-screen bg-background">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background w-full">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-3 mb-6">

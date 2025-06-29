@@ -134,7 +134,7 @@ export class AdvancedValidator {
               value: item.trim(),
               suggestion: 'Use only numbers separated by commas or ranges like "1-3"'
             });
-            return NaN;
+            return NaN; // Skip invalid numbers
           }
           return num;
         })

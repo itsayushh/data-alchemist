@@ -72,11 +72,11 @@ function Navbar() {
             return (
               <React.Fragment key={item.href}>
                 <Link 
-                  // onClick={() => item.href === '/' && clearData()}
+                  onClick={() => item.href === '/' && clearData()}
                   href={item.href}
                   className={`
                     flex items-center gap-1 
-                    ${isLast ? 'text-foreground font-bold text-base' : 'hover:text-secondary transition-colors text-base font-semibold'}
+                    ${isLast ? 'text-foreground font-bold text-base' : 'hover:text-foreground/80 transition-colors text-base font-semibold'}
                   `}
                 >
                   {item.label}

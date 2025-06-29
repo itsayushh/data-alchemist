@@ -102,3 +102,148 @@ try {
     throw error;
 }
 }
+
+export async function fixValidationErrors(validationErrors: any[], dataContext: any): Promise<any> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  
+  const query = `
+You are a data validation expert. Given validation errors and data context, provide automated fixes.
+
+DATA CONTEXT:
+${JSON.stringify(dataContext, null, 2)}
+
+VALIDATION ERRORS:
+${JSON.stringify(validationErrors, null, 2)}
+
+For each error, analyze the context and suggest the most appropriate fix. Return a JSON object with this structure:
+{
+  "fixes": [
+    {
+      "entity": "clients|workers|tasks",
+      "row": number,
+      "column": "fieldName",
+      "originalValue": "current value",
+      "suggestedValue": "fixed value",
+      "reason": "explanation of why this fix is recommended",
+      "confidence": "high|medium|low"
+    }
+  ],
+  "summary": {
+    "totalFixes": number,
+    "highConfidenceFixes": number,
+    "warnings": ["any warnings about fixes that need manual review"]
+  }
+}
+
+Focus on:
+1. Range corrections (e.g., priority levels 1-5)
+2. Format standardization (e.g., proper JSON, array formats)
+3. Reference validation (e.g., valid task IDs)
+4. Data consistency (e.g., skill matching, phase alignment)
+5. Business logic compliance
+
+Provide conservative, safe fixes that maintain data integrity.
+`;
+
+  try {
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+    
+    const generatedText = response.candidates[0].content.parts[0].text;
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+    
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error('Error fixing validation with Gemini:', error);
+    throw error;
+  }
+}
+
+export async function createRuleFromNaturalLanguage(prompt: string, dataContext: any): Promise<any> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  
+  const query = `
+You are a business rule creation expert. Convert natural language descriptions into structured business rules.
+
+DATA CONTEXT:
+${JSON.stringify(dataContext, null, 2)}
+
+AVAILABLE RULE TYPES:
+1. coRun: Tasks that must execute simultaneously
+2. slotRestriction: Minimum resource requirements for groups  
+3. loadLimit: Maximum workload limits for worker groups
+4. phaseWindow: Restrict task execution to specific phases
+
+USER REQUEST: "${prompt}"
+
+Analyze the request and return a JSON object with this structure:
+{
+  "isValid": boolean,
+  "ruleType": "coRun|slotRestriction|loadLimit|phaseWindow",
+  "rule": {
+    "name": "descriptive rule name",
+    "description": "detailed description of what this rule does",
+    // Rule-specific fields based on type:
+    
+    // For coRun:
+    "tasks": ["task1", "task2"], // actual task IDs from data
+    
+    // For slotRestriction:
+    "groupType": "client|worker",
+    "groupId": "actual group ID from data",
+    "minCommonSlots": number,
+    
+    // For loadLimit:
+    "workerGroup": "actual worker group from data",
+    "maxSlotsPerPhase": number,
+    
+    // For phaseWindow:
+    "taskId": "actual task ID from data",
+    "allowedPhases": [phase numbers]
+  },
+  "validation": {
+    "errors": ["any validation issues"],
+    "warnings": ["any concerns or suggestions"],
+    "confidence": "high|medium|low"
+  },
+  "explanation": "detailed explanation of how the natural language was interpreted"
+}
+
+Examples:
+- "Frontend and backend tasks should run together" → coRun rule with relevant task IDs
+- "Enterprise clients need at least 3 common time slots" → slotRestriction rule
+- "Backend team can't handle more than 2 tasks per phase" → loadLimit rule
+- "UI tasks should only run in phases 2-4" → phaseWindow rule
+
+Use actual IDs and values from the provided data context. If the request cannot be fulfilled with available data, set isValid to false and explain why.
+`;
+
+  try {
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+    
+    const generatedText = response.candidates[0].content.parts[0].text;
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+    
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error('Error creating rule with Gemini:', error);
+    throw error;
+  }
+}

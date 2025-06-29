@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DataProvider } from "@/contexts/DataContext";
 import "./globals.css";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider} from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Navbar from "@/components/navbar";
 
 const geistSans = Geist({
@@ -32,20 +30,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <DataProvider>
-        <SidebarProvider>
-          {/* Sidebar Component */}
-          <div className="flex">
-            <AppSidebar />
-            <div className="flex-1 max-w-full w-full">
-              {/* Navbar Component */}
-              <Navbar/>
-              {/* Main Content Area */}
-              <main className="w-[100%]">
+          <SidebarProvider>
+            <div className="flex min-h-screen w-full">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col">
+                <Navbar />
+                <main className="flex-1 w-full">
                   {children}
-              </main>
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
+          </SidebarProvider>
         </DataProvider>
       </body>
     </html>

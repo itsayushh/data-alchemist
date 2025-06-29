@@ -1,4 +1,5 @@
-import { BotMessageSquare, BrainCircuit, DatabaseZap, Home, Settings, Shredder } from "lucide-react"
+'use client'
+import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder } from "lucide-react"
 
 import {
     Sidebar,
@@ -11,6 +12,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { usePathname } from "next/navigation"
 
 // Menu items.
 const items = [
@@ -42,16 +44,19 @@ const items = [
 ]
 
 export function AppSidebar() {
+    const pathname = usePathname();
     return (
-        <Sidebar aria-label="Main application sidebar" className="flex flex-col h-full">
-            <SidebarHeader className="border-b">
+        <Sidebar aria-label="Main application sidebar" className="flex flex-col h-full" collapsible="icon">
+            <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton
-                          aria-label="Data Alchemist Home"
-                          className="flex items-center gap-2 text-xl font-semibold tracking-wide h-11"
+                            aria-label="Data Alchemist Home"
+                            className="flex items-center gap-2 text-lg font-semibold tracking-wide h-11"
                         >
-                            <Shredder size={100} />
+                            <div className="bg-background text-foreground flex aspect-square size-5 items-center justify-center rounded-lg hover:bg-accent">
+                                <FileStack className="flex-shrink-0 size-6 hover:bg-accent" />
+                            </div>
                             Data Alchemist
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -66,7 +71,7 @@ export function AppSidebar() {
                                 const Icon = item.icon
                                 return (
                                     <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild>
+                                        <SidebarMenuButton asChild isActive={item.url === pathname}>
                                             <a
                                                 href={item.url}
                                                 className="flex items-center gap-3 px-4 py-2 rounded-md text-gray-700 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"

@@ -17,6 +17,7 @@ export interface DataState {
   rules: Rule[];
   priorities: Priorities;
   isDataLoaded: boolean;
+  hiddenAISuggestions: any[];
 }
 
 interface DataContextType {
@@ -26,6 +27,7 @@ interface DataContextType {
   setTasks: (tasks: Task[]) => void;
   setRules: (rules: Rule[]) => void;
   setPriorities: (priorities: Priorities) => void;
+  setHiddenAISuggestions: (suggestions: any[]) => void;
   clearData: () => void;
   saveToLocalStorage: () => void;
   loadFromLocalStorage: () => boolean;
@@ -42,7 +44,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     tasks: [],
     rules: [],
     priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
-    isDataLoaded: false
+    isDataLoaded: false,
+    hiddenAISuggestions: []
   });
 
   // Load data from localStorage on component mount
@@ -70,6 +73,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setData(prev => ({ ...prev, priorities }));
   };
 
+  const setHiddenAISuggestions = (suggestions: any[]) => {
+    setData(prev => ({ ...prev, hiddenAISuggestions: suggestions }));
+  };
+
   const clearData = () => {
     setData({
       clients: [],
@@ -77,7 +84,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       tasks: [],
       rules: [],
       priorities: { PriorityLevel: 40, Fairness: 35, Fulfillment: 25 },
-      isDataLoaded: false
+      isDataLoaded: false,
+      hiddenAISuggestions: []
     });
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -126,6 +134,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setTasks,
       setRules,
       setPriorities,
+      setHiddenAISuggestions,
       clearData,
       saveToLocalStorage,
       loadFromLocalStorage
