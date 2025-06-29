@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { useData } from '@/contexts/DataContext';
 import { clear } from 'console';
+import { clearAllCaches } from '@/lib/client-cache';
 
 interface FileUploadState {
   clients: { file: File | null; data: any[]; isUploaded: boolean };
@@ -494,6 +495,8 @@ export default function UploadPage() {
   useEffect(() => {
     if (data.isDataLoaded) {
       router.push('/validate');
+    }else {
+      clearAllCaches(); // Clear any cached data on initial load
     }
   }, [data.isDataLoaded, router]);
 
@@ -529,8 +532,8 @@ export default function UploadPage() {
             if (type === 'workers') setWorkers(cleanedData);
             if (type === 'tasks') setTasks(cleanedData);
             
-            router.push('/validate');
             setIsLoading(false);
+            router.push('/validate');
           }
         });
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
@@ -558,8 +561,8 @@ export default function UploadPage() {
         if (type === 'workers') setWorkers(cleanedData);
         if (type === 'tasks') setTasks(cleanedData);
         
-        router.push('/validate');
         setIsLoading(false);
+        router.push('/validate');
       }
     };
     reader.readAsBinaryString(file);

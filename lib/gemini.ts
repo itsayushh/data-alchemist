@@ -351,3 +351,76 @@ Focus on safety, accuracy, and maintaining data consistency.
     throw error;
   }
 }
+
+export async function generateRuleSuggestions(dataContext: any): Promise<any> {
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  
+  // Create a minimal data summary for the API call
+  const minimalContext = {
+    summary: dataContext.summary,
+    sampleData: {
+      clientGroups: dataContext.summary?.clientGroups || [],
+      workerGroups: dataContext.summary?.workerGroups || [],
+      taskCategories: dataContext.summary?.taskCategories || [],
+      skills: dataContext.summary?.skillsAvailable?.slice(0, 10) || [], // Limit to top 10 skills
+      priorityLevels: dataContext.summary?.priorityLevels || []
+    }
+  };
+  
+  const query = `
+Analyze this data and suggest exactly 5 concise business rules:
+
+DATA: ${JSON.stringify(minimalContext, null, 0)}
+
+RULE TYPES: coRun, slotRestriction, loadLimit, phaseWindow
+
+Return ONLY this JSON structure:
+{
+  "suggestions": [
+    {
+      "prompt": "brief rule description (max 10 words)",
+      "category": "rule type",
+      "priority": "high|medium|low"
+    }
+  ],
+  "dataInsights": {
+    "totalClients": ${dataContext.summary?.totalClients || 0},
+    "totalWorkers": ${dataContext.summary?.totalWorkers || 0},
+    "totalTasks": ${dataContext.summary?.totalTasks || 0},
+    "commonSkills": [${dataContext.summary?.skillsAvailable?.slice(0, 3).map((s: string) => `"${s}"`).join(',') || ''}],
+    "priorityDistribution": "brief summary",
+    "taskCategoryDistribution": "brief summary"
+  }
+}
+
+Requirements:
+- Exactly 5 suggestions
+- Each prompt under 10 words
+- Use actual data values
+- Diverse rule types
+- No explanations or reasoning
+`;
+
+  try {
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+    
+    const generatedText = response.candidates[0].content.parts[0].text;
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+    
+    const result_data = JSON.parse(jsonMatch[0]);
+    return result_data;
+  } catch (error) {
+    console.error('Error generating rule suggestions with Gemini:', error);
+    throw error;
+  }
+}

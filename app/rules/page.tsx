@@ -26,7 +26,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { createRuleFromNaturalLanguage } from "@/lib/gemini"
+import { createRuleFromNaturalLanguage, generateRuleSuggestions } from "@/lib/gemini"
+import { 
+  generateCacheKey, 
+  getCachedSuggestions, 
+  setCachedSuggestions, 
+  clearAllCaches,
+  isCacheValid 
+} from "@/lib/client-cache"
 
 const RuleInputUI: React.FC = () => {
   // Get data from context instead of stub data
@@ -41,6 +48,8 @@ const RuleInputUI: React.FC = () => {
   const [isCreatingAIRule, setIsCreatingAIRule] = useState(false)
   const [aiRuleResult, setAiRuleResult] = useState<any>(null)
   const [showAIRuleCreator, setShowAIRuleCreator] = useState(false)
+  const [ruleSuggestions, setRuleSuggestions] = useState<any>(null)
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
 
   // Form states for different rule types
   const [coRunForm, setCoRunForm] = useState<{ name: string; tasks: string[]; description: string }>({
@@ -92,6 +101,9 @@ const RuleInputUI: React.FC = () => {
     specificRules: [],
     description: "",
   })
+
+  // Add state to track cache status
+  const [isCacheHit, setIsCacheHit] = useState(false)
 
   const ruleTypes = [
     { key: "coRun", label: "Co-Run Rules", description: "Tasks that must execute together", icon: Zap, color: "slate" },
@@ -269,6 +281,83 @@ const RuleInputUI: React.FC = () => {
     return ruleType?.color || "slate"
   }
 
+  const loadRuleSuggestions = async (forceRefresh = false) => {
+    if (!forceRefresh && (ruleSuggestions || isLoadingSuggestions)) return
+    
+    // Check if we have sufficient data to generate meaningful suggestions
+    if (data.clients.length === 0 || data.workers.length === 0 || data.tasks.length === 0) {
+      setRuleSuggestions({
+        suggestions: [],
+        dataInsights: {
+          totalClients: data.clients.length,
+          totalWorkers: data.workers.length,
+          totalTasks: data.tasks.length,
+          commonSkills: [],
+          priorityDistribution: "No data available",
+          taskCategoryDistribution: "No data available"
+        }
+      })
+      return
+    }
+    
+    // Create a minimal data context to reduce API payload
+    const dataContext = {
+      summary: {
+        totalClients: data.clients.length,
+        totalWorkers: data.workers.length,
+        totalTasks: data.tasks.length,
+        clientGroups: [...new Set(data.clients.map(c => c.GroupTag))].slice(0, 5), // Limit to 5
+        workerGroups: [...new Set(data.workers.map(w => w.WorkerGroup))].slice(0, 5), // Limit to 5
+        taskCategories: [...new Set(data.tasks.map(t => t.Category))].slice(0, 5), // Limit to 5
+        skillsAvailable: [...new Set(data.workers.flatMap(w => w.Skills.split(',').map(s => s.trim())))].slice(0, 8), // Limit to 8
+        priorityLevels: [...new Set(data.clients.map(c => c.PriorityLevel))]
+      }
+    }
+    
+    const cacheKey = generateCacheKey(dataContext)
+    
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedResult = getCachedSuggestions(cacheKey)
+      if (cachedResult) {
+        setRuleSuggestions(cachedResult)
+        setIsCacheHit(true) // Indicate cache hit
+        return
+      }
+    }
+    
+    // Clear cache if force refresh
+    if (forceRefresh) {
+      clearAllCaches()
+    }
+    
+    setIsLoadingSuggestions(true)
+    try {
+      const suggestions = await generateRuleSuggestions(dataContext)
+      
+      // Cache the result
+      setCachedSuggestions(cacheKey, suggestions)
+      
+      setRuleSuggestions(suggestions)
+      setIsCacheHit(false) // Indicate fresh data
+    } catch (error) {
+      console.error('Failed to load rule suggestions:', error)
+      setRuleSuggestions({
+        suggestions: [],
+        dataInsights: {
+          totalClients: data.clients.length,
+          totalWorkers: data.workers.length,
+          totalTasks: data.tasks.length,
+          commonSkills: [],
+          priorityDistribution: "Unable to analyze",
+          taskCategoryDistribution: "Unable to analyze"
+        }
+      })
+    } finally {
+      setIsLoadingSuggestions(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background w-full">
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -310,7 +399,12 @@ const RuleInputUI: React.FC = () => {
               </div>
               <Button
                 variant="outline"
-                onClick={() => setShowAIRuleCreator(!showAIRuleCreator)}
+                onClick={() => {
+                  setShowAIRuleCreator(!showAIRuleCreator)
+                  if (!showAIRuleCreator) {
+                    loadRuleSuggestions()
+                  }
+                }}
                 className="flex items-center gap-2"
               >
                 <Sparkles className="h-4 w-4" />
@@ -351,25 +445,103 @@ const RuleInputUI: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Example prompts */}
+                {/* Recommended rules based on data */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Example prompts:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    { [
-                      "Frontend and backend tasks should run together",
-                      "Backend team can't handle more than 2 tasks per phase",
-                      "Enterprise clients need at least 3 common time slots",
-                      "UI tasks should only run in phases 2-4"
-                    ].map((example) => (
-                      <button
-                        key={example}
-                        onClick={() => setAiRulePrompt(example)}
-                        className="text-xs px-3 py-1 bg-white border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600"
-                      >
-                        {example}
-                      </button>
-                    )) }
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {isLoadingSuggestions ? 'Analyzing your data...' : 'Recommended rules for your data:'}
+                      {ruleSuggestions && !isLoadingSuggestions && (
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+                          isCacheHit 
+                            ? 'text-green-600 bg-green-50' 
+                            : 'text-blue-600 bg-blue-50'
+                        }`}>
+                          {isCacheHit ? '✓ Cached (cost-free)' : '✨ Fresh from AI'}
+                        </span>
+                      )}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      {ruleSuggestions?.dataInsights && (
+                        <div className="text-xs text-gray-500">
+                          Based on {ruleSuggestions.dataInsights.totalTasks} tasks, {ruleSuggestions.dataInsights.totalWorkers} workers, {ruleSuggestions.dataInsights.totalClients} clients
+                        </div>
+                      )}
+                      {ruleSuggestions && !isLoadingSuggestions && (
+                        <button
+                          onClick={() => {
+                            setRuleSuggestions(null)
+                            loadRuleSuggestions(true) // Force refresh
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600"
+                          title="Refresh suggestions (uses API call)"
+                        >
+                          ↻ Refresh
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  
+                  {isLoadingSuggestions ? (
+                    <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+                      <div className="animate-spin h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                      <span className="text-sm text-gray-600">Analyzing your data to generate personalized suggestions...</span>
+                    </div>
+                  ) : ruleSuggestions?.suggestions?.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {ruleSuggestions.suggestions.map((suggestion: any, index: number) => (
+                          <button
+                            key={index}
+                            onClick={() => setAiRulePrompt(suggestion.prompt)}
+                            className={`text-xs px-3 py-2 border rounded-lg hover:bg-gray-50 text-left transition-colors ${
+                              suggestion.priority === 'high' 
+                                ? 'bg-blue-50 border-blue-200 text-blue-800' 
+                                : suggestion.priority === 'medium'
+                                ? 'bg-green-50 border-green-200 text-green-800'
+                                : 'bg-gray-50 border-gray-200 text-gray-600'
+                            }`}
+                          >
+                            <div className="font-medium text-sm">{suggestion.prompt}</div>
+                            <div className="text-xs opacity-75 mt-1 flex items-center justify-between">
+                              <span>{suggestion.category}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                suggestion.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {suggestion.priority}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      {ruleSuggestions.dataInsights && (
+                        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2">
+                          <strong>Data overview:</strong> {ruleSuggestions.dataInsights.commonSkills?.length > 0 && 
+                            `Skills: ${ruleSuggestions.dataInsights.commonSkills.join(', ')} • `}
+                          Priority: {ruleSuggestions.dataInsights.priorityDistribution} • 
+                          Categories: {ruleSuggestions.dataInsights.taskCategoryDistribution}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="text-sm text-yellow-800">
+                        {data.clients.length === 0 || data.workers.length === 0 || data.tasks.length === 0 
+                          ? 'Please upload your data (clients, workers, and tasks) to get personalized rule suggestions.'
+                          : 'Unable to generate suggestions from your data. Try creating rules manually below.'}
+                      </div>
+                      {(data.clients.length === 0 || data.workers.length === 0 || data.tasks.length === 0) && (
+                        <div className="text-xs text-yellow-700 mt-2">
+                          Missing: {[
+                            data.clients.length === 0 ? 'Clients' : null,
+                            data.workers.length === 0 ? 'Workers' : null,
+                            data.tasks.length === 0 ? 'Tasks' : null
+                          ].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* AI Result Display */}
