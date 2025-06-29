@@ -271,10 +271,6 @@ export default function ValidatePage() {
         window.URL.revokeObjectURL(rulesUrl);
     };
 
-    const handleBackToUpload = () => {
-        clearData();
-        router.push('/');
-    };
 
     const getTabIcon = (tab: string) => {
         switch (tab) {
@@ -324,31 +320,31 @@ export default function ValidatePage() {
                             <div className="border-b bg-muted rounded-t-xl ">
                                 <div className="flex items-center justify-between p-4">
                                     <div className="flex space-x-1">
-                                        {(['clients', 'workers', 'tasks', 'rules'] as const).map((tab) => (
+                                        {(['clients', 'workers', 'tasks'] as const).map((tab) => (
                                             <button
                                                 key={tab}
                                                 onClick={() => setActiveTab(tab)}
                                                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
                                                     activeTab === tab
-                                                        ? 'bg-background text-foreground shadow-sm'
-                                                        : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                                                        ? 'bg-accent text-foreground shadow-sm'
+                                                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                                                 }`}
                                             >
                                                 {getTabIcon(tab)}
                                                 {tab}
                                                 <span className="ml-1 text-xs bg-muted-foreground/20 text-muted-foreground px-1.5 py-0.5 rounded">
-                                                    {tab === 'rules' ? data.rules.length : (data[tab] as any[]).length}
+                                                    {(data[tab] as any[]).length}
                                                 </span>
                                             </button>
                                         ))}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={handleBackToUpload}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                            onClick={runValidation}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-foreground/10 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                                         >
-                                            <ArrowLeft className="h-4 w-4" />
-                                            Back to Upload
+                                            <RefreshCw className="h-4 w-4" />
+                                            {isValidating ? 'Validating...' : 'Re-validate Data'}
                                         </button>
                                         <button
                                             onClick={handleExport}

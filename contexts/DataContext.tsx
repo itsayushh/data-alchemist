@@ -31,6 +31,11 @@ interface DataContextType {
   clearData: () => void;
   saveToLocalStorage: () => void;
   loadFromLocalStorage: () => boolean;
+  // New data modification methods
+  updateClients: (clients: Client[]) => void;
+  updateWorkers: (workers: Worker[]) => void;
+  updateTasks: (tasks: Task[]) => void;
+  applyDataModification: (modifiedData: { clients?: Client[]; workers?: Worker[]; tasks?: Task[] }) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -119,6 +124,33 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return false;
   };
 
+  // New data modification methods
+  const updateClients = (clients: Client[]) => {
+    setData(prev => ({ ...prev, clients, isDataLoaded: checkIfDataLoaded(clients, prev.workers, prev.tasks) }));
+  };
+
+  const updateWorkers = (workers: Worker[]) => {
+    setData(prev => ({ ...prev, workers, isDataLoaded: checkIfDataLoaded(prev.clients, workers, prev.tasks) }));
+  };
+
+  const updateTasks = (tasks: Task[]) => {
+    setData(prev => ({ ...prev, tasks, isDataLoaded: checkIfDataLoaded(prev.clients, prev.workers, tasks) }));
+  };
+
+  const applyDataModification = (modifiedData: { clients?: Client[]; workers?: Worker[]; tasks?: Task[] }) => {
+    setData(prev => ({
+      ...prev,
+      clients: modifiedData.clients || prev.clients,
+      workers: modifiedData.workers || prev.workers,
+      tasks: modifiedData.tasks || prev.tasks,
+      isDataLoaded: checkIfDataLoaded(
+        modifiedData.clients || prev.clients,
+        modifiedData.workers || prev.workers,
+        modifiedData.tasks || prev.tasks
+      )
+    }));
+  };
+
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
     if (data.isDataLoaded) {
@@ -137,7 +169,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setHiddenAISuggestions,
       clearData,
       saveToLocalStorage,
-      loadFromLocalStorage
+      loadFromLocalStorage,
+      updateClients,
+      updateWorkers,
+      updateTasks,
+      applyDataModification
     }}>
       {children}
     </DataContext.Provider>

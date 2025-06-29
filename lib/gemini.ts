@@ -247,3 +247,107 @@ Use actual IDs and values from the provided data context. If the request cannot 
     throw error;
   }
 }
+
+export async function generateDataModification(prompt: string, dataContext: any): Promise<any> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  
+  const query = `
+You are a data modification expert. Convert natural language requests into structured data modification operations.
+
+DATA SCHEMA:
+${JSON.stringify(dataSchema, null, 2)}
+
+CURRENT DATA CONTEXT:
+${JSON.stringify(dataContext, null, 2)}
+
+AVAILABLE MODIFICATION TYPES:
+1. "update": Modify existing records based on criteria
+2. "add": Create new records  
+3. "delete": Remove records based on criteria
+4. "bulk_update": Modify multiple records with same changes
+5. "conditional_update": Update records only if conditions are met
+
+USER REQUEST: "${prompt}"
+
+Return ONLY a JSON object with this structure:
+{
+  "isValid": boolean,
+  "modificationType": "update|add|delete|bulk_update|conditional_update",
+  "entity": "clients|workers|tasks",
+  "operations": [
+    {
+      "action": "update|add|delete",
+      "target": {
+        // For updates/deletes: criteria to select records  
+        "filters": [
+          {
+            "field": "fieldName",
+            "operator": "=|!=|>|>=|<|<=|contains|includes|in",
+            "value": "value"
+          }
+        ],
+        // For adds: specify "new" 
+        "type": "existing|new"
+      },
+      "changes": {
+        // Field-value pairs for updates/adds
+        "fieldName": "newValue"
+      },
+      "reason": "explanation for this operation",
+      "affectedCount": "estimated number of records affected"
+    }
+  ],
+  "validation": {
+    "errors": ["any validation issues"],
+    "warnings": ["potential concerns or side effects"],
+    "confidence": "high|medium|low",
+    "suggestedReview": boolean
+  },
+  "summary": {
+    "description": "human-readable summary of what will be changed",
+    "totalAffected": "estimated total records affected",
+    "riskLevel": "low|medium|high"
+  },
+  "explanation": "detailed explanation of how the request was interpreted"
+}
+
+EXAMPLES:
+- "Increase priority level of all Enterprise clients by 1" → bulk_update operation
+- "Add a new worker named John with JavaScript skills" → add operation  
+- "Remove all tasks with duration less than 1" → delete operation
+- "Update client ABC123 to priority level 5" → update operation
+- "Set all Frontend workers to have max 3 slots per phase" → conditional_update operation
+
+IMPORTANT GUIDELINES:
+1. Always validate field values against schema constraints
+2. Use actual IDs and values from the provided data context
+3. Estimate realistic affected record counts
+4. Flag high-risk operations (bulk deletes, priority changes, etc.)
+5. Suggest manual review for operations affecting >50% of records
+6. Preserve data integrity and business logic
+7. If the request is ambiguous or cannot be safely executed, set isValid to false
+
+Focus on safety, accuracy, and maintaining data consistency.
+`;
+
+  try {
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+    
+    const generatedText = response.candidates[0].content.parts[0].text;
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+    
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error('Error generating data modification with Gemini:', error);
+    throw error;
+  }
+}
