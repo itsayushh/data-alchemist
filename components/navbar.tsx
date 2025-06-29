@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, ChevronRight, Sidebar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Github, Sidebar } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import React from 'react'
@@ -61,7 +61,7 @@ function Navbar() {
   }
 
   return (
-    <nav className="bg-background sticky top-0 z-10 flex items-center gap-2 border-b p-4">
+    <nav className="bg-background sticky top-0 z-10 flex items-center gap-2 border-b p-4 font-bricolage-grotesk">
       <div className="flex justify-between items-center gap-4 w-full">
 
         {/* Breadcrumbs */}
@@ -87,7 +87,12 @@ function Navbar() {
             )
           })}
         </div>
+        <div className='flex flex-row gap-3'>
+          <Button variant={"outline"} onClick={() => window.location.href = 'https://github.com/itsayushh/data-alchemist'} className="h-9 w-9 p-0">
+            <Github className="h-5 w-5" />
+          </Button>
         <ThemeToggle/>
+        </div>
       </div>
     </nav>
   )

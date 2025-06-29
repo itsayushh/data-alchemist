@@ -1,9 +1,10 @@
 'use client'
-import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder, Scale, Bus } from "lucide-react"
+import { BotMessageSquare, BrainCircuit, DatabaseZap, FileStack, Home, Settings, Shredder, Scale, Bus, Github, Heart } from "lucide-react"
 
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -80,7 +81,7 @@ export function AppSidebar() {
     const pathname = usePathname();
     const router = useRouter();
     return (
-        <Sidebar aria-label="Main application sidebar" className="flex flex-col h-full" collapsible="icon">
+        <Sidebar aria-label="Main application sidebar" className="flex flex-col h-full font-bricolage-grotesk" collapsible="icon">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
@@ -106,8 +107,8 @@ export function AppSidebar() {
                                 return (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton asChild isActive={item.url === pathname} onClick={() => {router.push(item.url)}}>
-                                            <div className="">
-                                                <Icon size={20} className="flex-shrink-0" />
+                                            <div className="text-lg">
+                                                <Icon size={22} className="flex-shrink-0" />
                                                 <span>{item.title}</span>
                                             </div>
                                         </SidebarMenuButton>
@@ -118,6 +119,16 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+            <SidebarFooter>
+                <SidebarMenuItem>
+                                        <SidebarMenuButton asChild onClick={() => {window.location.href = 'https://github.com/itsayushh/'}}>
+                                            <div className="text-lg">
+                                                <Github size={22} className="flex-shrink-0" />
+                                                <span className="ml-2">@itsayushh</span>
+                                            </div>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+            </SidebarFooter>
         </Sidebar>
     )
 }

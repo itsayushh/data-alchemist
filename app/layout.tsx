@@ -48,7 +48,8 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${schibstedGrotesk.variable} ${bricolageGrotesk.variable} font-schibsted-grotesk antialiased`}>
         <ThemeProvider
             attribute="class"
-            defaultTheme="light"
+            defaultTheme="system"
+            enableSystem
             disableTransitionOnChange
           >
         <DataProvider>
