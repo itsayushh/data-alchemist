@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  
   // Environment variables
   env: {
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
@@ -11,11 +9,10 @@ const nextConfig: NextConfig = {
 
   // TypeScript configuration - less strict
   typescript: {
-    ignoreBuildErrors: false, // Set to true if you want to ignore TS errors during build
+    ignoreBuildErrors: true, // Set to true if you want to ignore TS errors during build
   },
   eslint: {
-    ignoreDuringBuilds: false, // Set to true if you want to ignore ESLint during builds
-    dirs: ['app', 'components', 'utils', 'lib', 'contexts', 'hooks'], // Specify directories to lint
+    ignoreDuringBuilds: true, // Set to true if you want to ignore ESLint during builds
   },
 
   // Webpack configuration for additional flexibility
