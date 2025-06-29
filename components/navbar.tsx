@@ -9,6 +9,7 @@ import { LogOut, Home, Database, Settings, LucideIcon, User } from 'lucide-react
 import { SidebarTrigger } from './ui/sidebar'
 import { Breadcrumb } from './ui/breadcrumb'
 import { useData } from '@/contexts/DataContext'
+import { ThemeToggle } from './ui/theme-toggle'
 
 interface BreadcrumbItem {
   label: string;
@@ -61,11 +62,11 @@ function Navbar() {
 
   return (
     <nav className="bg-background sticky top-0 z-10 flex items-center gap-2 border-b p-4">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger />  
+      <div className="flex justify-between items-center gap-4 w-full">
 
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <SidebarTrigger />  
           {currentBreadcrumb.items.map((item: BreadcrumbItem, index: number) => {
             const isLast = index === currentBreadcrumb.items.length - 1
             
@@ -86,6 +87,7 @@ function Navbar() {
             )
           })}
         </div>
+        <ThemeToggle/>
       </div>
     </nav>
   )
