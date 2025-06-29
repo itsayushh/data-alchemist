@@ -34,6 +34,7 @@ import {
   clearAllCaches,
   isCacheValid 
 } from "@/lib/client-cache"
+import { BusinessRuleValidator, type RuleValidationResult, type BusinessRule } from "@/utils/rule-validation"
 
 const RuleInputUI: React.FC = () => {
   // Get data from context instead of stub data
@@ -105,6 +106,10 @@ const RuleInputUI: React.FC = () => {
   // Add state to track cache status
   const [isCacheHit, setIsCacheHit] = useState(false)
 
+  // Validation state
+  const [validationResults, setValidationResults] = useState<Map<string, RuleValidationResult>>(new Map())
+  const [isValidating, setIsValidating] = useState(false)
+
   const ruleTypes = [
     { key: "coRun", label: "Co-Run Rules", description: "Tasks that must execute together", icon: Zap, color: "slate" },
     {
@@ -146,11 +151,83 @@ const RuleInputUI: React.FC = () => {
 
   const generateId = () => "rule_" + Math.random().toString(36).substr(2, 9)
 
+  // Convert our Rule type to BusinessRule type for validation
+  const convertToBusinessRule = (rule: Rule): BusinessRule => {
+    const baseRule = {
+      id: rule.id,
+      type: rule.type as BusinessRule['type'],
+      name: rule.name,
+      description: rule.description || '',
+      isActive: true,
+      priority: 1,
+      createdAt: new Date()
+    }
+
+    let parameters: Record<string, any> = {}
+
+    switch (rule.type) {
+      case 'coRun':
+        parameters = {
+          taskIds: (rule as CoRunRule).tasks,
+          mustRunTogether: true
+        }
+        break
+      case 'slotRestriction':
+        const slotRule = rule as SlotRestrictionRule
+        parameters = {
+          [slotRule.groupType === 'client' ? 'clientGroup' : 'workerGroup']: slotRule.groupId,
+          minCommonSlots: slotRule.minCommonSlots
+        }
+        break
+      case 'loadLimit':
+        const loadRule = rule as LoadLimitRule
+        parameters = {
+          workerGroup: loadRule.workerGroup,
+          maxSlotsPerPhase: loadRule.maxSlotsPerPhase
+        }
+        break
+      case 'phaseWindow':
+        const phaseRule = rule as PhaseWindowRule
+        parameters = {
+          taskId: phaseRule.taskId,
+          allowedPhases: phaseRule.allowedPhases
+        }
+        break
+      default:
+        parameters = {}
+    }
+
+    return { ...baseRule, parameters }
+  }
+
+  // Validate a single rule
+  const validateRule = async (rule: Rule) => {
+    if (!rule || !data) return
+
+    setIsValidating(true)
+    try {
+      const validator = new BusinessRuleValidator()
+      const businessRule = convertToBusinessRule(rule)
+      const result = validator.validateRules([businessRule], data)
+      
+      setValidationResults(prev => new Map(prev.set(rule.id, result)))
+    } catch (error) {
+      console.error('Validation error:', error)
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  // Get validation status for a rule
+  const getRuleValidationStatus = (ruleId: string) => {
+    return validationResults.get(ruleId)
+  }
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  const addRule = (type: string) => {
+  const addRule = async (type: string) => {
     const id = generateId()
     let newRule: Rule
 
@@ -188,8 +265,12 @@ const RuleInputUI: React.FC = () => {
         return
     }
 
+    // Add rule to context
     setContextRules([...rules, newRule])
     setActiveRuleType("")
+
+    // Validate the new rule
+    await validateRule(newRule)
   }
 
   const deleteRule = (id: string) => {
@@ -373,6 +454,20 @@ const RuleInputUI: React.FC = () => {
                 <span className="text-sm text-muted-foreground">Active Rules: </span>
                 <span className="font-medium text-card-foreground">{rules.length}</span>
               </div>
+              <button
+                onClick={async () => {
+                  setIsValidating(true)
+                  for (const rule of rules) {
+                    await validateRule(rule)
+                  }
+                  setIsValidating(false)
+                }}
+                disabled={rules.length === 0 || isValidating}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-medium"
+              >
+                <Check size={16} />
+                {isValidating ? 'Validating...' : 'Validate All'}
+              </button>
               <button
                 onClick={exportRulesConfig}
                 disabled={rules.length === 0}
@@ -1171,6 +1266,14 @@ const RuleInputUI: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <button
+                              onClick={() => validateRule(rule)}
+                              disabled={isValidating}
+                              className="p-1 text-muted-foreground hover:text-blue-600 transition-colors disabled:opacity-50"
+                              title="Validate Rule"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
                               onClick={() => setEditingRule(editingRule === rule.id ? null : rule.id)}
                               className="p-1 text-muted-foreground hover:text-card-foreground transition-colors"
                             >
@@ -1224,6 +1327,77 @@ const RuleInputUI: React.FC = () => {
                             <div className="mt-2 p-2 bg-muted rounded text-xs">{rule.description}</div>
                           )}
                         </div>
+
+                        {/* Validation Status */}
+                        {(() => {
+                          const validation = getRuleValidationStatus(rule.id)
+                          if (!validation) return null
+
+                          return (
+                            <div className="mt-3 space-y-2">
+                              {validation.errors.length > 0 && (
+                                <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                                  <AlertCircle size={14} className="text-red-600 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="text-xs font-medium text-red-800 mb-1">
+                                      {validation.errors.length} Error{validation.errors.length > 1 ? 's' : ''}
+                                    </div>
+                                    {validation.errors.slice(0, 2).map((error, idx) => (
+                                      <div key={idx} className="text-xs text-red-700">
+                                        • {error.message}
+                                        {error.suggestion && (
+                                          <div className="ml-2 text-red-600 italic">
+                                            💡 {error.suggestion}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {validation.errors.length > 2 && (
+                                      <div className="text-xs text-red-600 mt-1">
+                                        +{validation.errors.length - 2} more errors
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {validation.warnings.length > 0 && (
+                                <div className="flex items-start gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                  <AlertCircle size={14} className="text-yellow-600 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="text-xs font-medium text-yellow-800 mb-1">
+                                      {validation.warnings.length} Warning{validation.warnings.length > 1 ? 's' : ''}
+                                    </div>
+                                    {validation.warnings.slice(0, 2).map((warning, idx) => (
+                                      <div key={idx} className="text-xs text-yellow-700">
+                                        • {warning.message}
+                                        {warning.suggestion && (
+                                          <div className="ml-2 text-yellow-600 italic">
+                                            💡 {warning.suggestion}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {validation.warnings.length > 2 && (
+                                      <div className="text-xs text-yellow-600 mt-1">
+                                        +{validation.warnings.length - 2} more warnings
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {validation.errors.length === 0 && validation.warnings.length === 0 && (
+                                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                                  <Check size={14} className="text-green-600" />
+                                  <div className="text-xs text-green-700 font-medium">
+                                    Rule validation passed
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -1232,36 +1406,6 @@ const RuleInputUI: React.FC = () => {
             </div>
           </div>
         </div>
-        
-
-        {/* Rule Validation Status */}
-        {rules.length > 0 && (
-          <div className="mt-8 bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center justify-center w-8 h-8 bg-accent rounded-full">
-                <Check size={16} className="text-accent-foreground" />
-              </div>
-              <div>
-                <h3 className="font-medium text-card-foreground">Configuration Ready</h3>
-                <p className="text-sm text-muted-foreground">
-                  {rules.length} rule{rules.length > 1 ? "s" : ""} configured and ready for export
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={exportRulesConfig}
-                className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm font-medium"
-              >
-                <Download size={18} />
-                Export Configuration
-              </button>
-              <div className="text-sm text-muted-foreground">
-                Export includes all {rules.length} configured rules with metadata
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
