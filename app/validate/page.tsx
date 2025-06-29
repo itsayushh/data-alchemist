@@ -12,7 +12,7 @@ import {
     ValidationError,
     DataSet,
     getErrorCategory,
-} from '../../utils/validation';
+} from '../../utils/data-validation';
 import { Rule } from '../../utils/rule';
 import { ModernDataTable } from '@/components/data-table';
 import { fixValidationErrors } from '../../lib/gemini';

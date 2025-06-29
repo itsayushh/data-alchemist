@@ -429,9 +429,34 @@ export class AdvancedValidator {
   }
 
   private validateMalformedLists(data: DataSet): void {
-    data.workers.forEach((worker, index) => {
-      this.parseArray(worker.AvailableSlots, 'AvailableSlots', index, 'workers');
-    });
+     data.workers.forEach((worker, index) => {
+    const originalValue = worker.AvailableSlots;
+    const parsed = this.parseArray(originalValue, 'AvailableSlots', index, 'workers');
+    const cleanedString = parsed.join(',');
+
+    // Normalize input (remove brackets and whitespace)
+    let normalizedOriginal = originalValue?.trim() ?? '';
+    if (normalizedOriginal.startsWith('[') && normalizedOriginal.endsWith(']')) {
+      normalizedOriginal = normalizedOriginal.slice(1, -1);
+    }
+
+    normalizedOriginal = normalizedOriginal.split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .join(',');
+
+    // If cleaned version differs from original input
+    if (normalizedOriginal !== cleanedString) {
+      this.addFix({
+        type: 'malformed_array',
+        message: `Cleaned malformed AvailableSlots: "${originalValue}" → "${cleanedString}"`,
+        entity: 'workers',
+        row: index,
+        column: 'AvailableSlots',
+        value: '[' +parsed.join(',') + ']',
+      });
+    }
+  });
 
     data.tasks.forEach((task, index) => {
       task.PreferredPhases =  '[' +this.parseArray(task.PreferredPhases, 'PreferredPhases', index, 'tasks').toString() + ']';
@@ -560,6 +585,49 @@ export class AdvancedValidator {
       }
     });
   }
+  private validatePhaseSlotSaturation(data: DataSet): void {
+    // Phase-slot saturation: sum of task durations per Phase ≤ total worker slots (as per PDF requirement)
+    const phaseCapacity = new Map<number, number>();
+    const phaseDemand = new Map<number, number>();
+
+    // Calculate total worker slots per phase
+    data.workers.forEach(worker => {
+      const availableSlots = this.parseArray(worker.AvailableSlots, 'AvailableSlots', -1, 'workers');
+      availableSlots.forEach(phase => {
+        phaseCapacity.set(phase, (phaseCapacity.get(phase) || 0) + worker.MaxLoadPerPhase);
+      });
+    });
+
+    // Calculate demand per phase from tasks
+    data.tasks.forEach((task, index) => {
+      const preferredPhases = this.parseArray(task.PreferredPhases, 'PreferredPhases', index, 'tasks');
+      if (preferredPhases.length === 0) {
+        // If no preferred phases, assume it could run in any phase that has capacity
+        Array.from(phaseCapacity.keys()).forEach(phase => {
+          phaseDemand.set(phase, (phaseDemand.get(phase) || 0) + task.Duration);
+        });
+      } else {
+        preferredPhases.forEach(phase => {
+          phaseDemand.set(phase, (phaseDemand.get(phase) || 0) + task.Duration);
+        });
+      }
+    });
+
+    // Check for phase saturation
+    phaseDemand.forEach((demand, phase) => {
+      const capacity = phaseCapacity.get(phase) || 0;
+      if (demand > capacity) {
+        this.addError({
+          type: 'phase_slot_saturation',
+          message: `Phase ${phase} is oversaturated: demand (${demand}) exceeds capacity (${capacity})`,
+          entity: 'general',
+          value: { phase, demand, capacity },
+          suggestion: `Add more workers to phase ${phase} or reduce task durations for this phase`
+        });
+      }
+    });
+  }
+
 
   private validatePhaseConsistency(data: DataSet): void {
     const allPhases = new Set<number>();
@@ -660,6 +728,7 @@ export class AdvancedValidator {
     this.validateSkillCoverage(data);
     this.validateWorkerOverload(data);
     this.validateMaxConcurrency(data);
+    this.validatePhaseSlotSaturation(data);  
     this.validatePhaseConsistency(data);
     this.validateBusinessLogic(data);
 

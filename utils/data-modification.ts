@@ -1,5 +1,5 @@
 // utils/data-modification.ts
-import { Client, Worker, Task } from './validation';
+import { Client, Worker, Task } from './data-validation';
 import { DataState } from '@/contexts/DataContext';
 
 export interface ModificationOperation {
