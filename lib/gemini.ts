@@ -593,3 +593,79 @@ Requirements:
     throw error;
   }
 }
+
+export async function getIntelligentHeaderMapping(
+  originalHeaders: string[],
+  entityType: 'clients' | 'workers' | 'tasks',
+  sampleData?: any[]
+): Promise<{ original: string; suggested: string; confidence: number; reasoning: string }[]> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  
+  const expectedSchema = dataSchema[entityType];
+  const sampleDataStr = sampleData ? JSON.stringify(sampleData.slice(0, 2), null, 2) : '';
+  
+  const prompt = `
+You are an expert data mapping assistant. I need to map original CSV headers to the correct schema for ${entityType}.
+
+EXPECTED SCHEMA FOR ${entityType.toUpperCase()}:
+${JSON.stringify(expectedSchema.fields, null, 2)}
+
+ORIGINAL HEADERS:
+${JSON.stringify(originalHeaders)}
+
+${sampleDataStr ? `SAMPLE DATA (first 2 rows):
+${sampleDataStr}` : ''}
+
+Please provide a mapping for each original header to the most appropriate expected schema field. Consider:
+1. Semantic similarity between headers
+2. Sample data content if provided
+3. Common naming conventions
+4. Context clues from the data
+
+Return a JSON array with this exact structure:
+[
+  {
+    "original": "original_header_name",
+    "suggested": "ExpectedSchemaField",
+    "confidence": 0.95,
+    "reasoning": "Brief explanation of why this mapping makes sense"
+  }
+]
+
+Confidence should be between 0.0 and 1.0:
+- 1.0: Perfect match (exact or very obvious)
+- 0.9: Very high confidence (clear semantic match)
+- 0.8: High confidence (good match with minor differences)
+- 0.7: Medium confidence (reasonable match but some uncertainty)
+- 0.6: Low confidence (best guess but uncertain)
+- Below 0.6: Very uncertain, might need manual review
+
+IMPORTANT: 
+- Return ONLY the JSON array, no other text
+- Each original header must be mapped to exactly one expected field
+- If uncertain, choose the best match but lower the confidence score
+- Use the exact field names from the expected schema
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // Clean the response and parse JSON
+    const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
+    const mappings = JSON.parse(cleanedText);
+    
+    return mappings;
+  } catch (error) {
+    console.error('Error getting intelligent header mapping:', error);
+    
+    // Fallback to simple mapping if AI fails
+    return originalHeaders.map(header => ({
+      original: header,
+      suggested: header,
+      confidence: 0.5,
+      reasoning: 'AI mapping failed, using original header'
+    }));
+  }
+}

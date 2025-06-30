@@ -35,6 +35,12 @@ function Navbar() {
         { label: 'Home', href: '/' }
       ]
     },
+    '/preprocess': {
+      items: [
+        { label: 'Home', href: '/' },
+        { label: 'Preprocess', href: '/preprocess' }
+      ]
+    },
     '/validate': {
       items: [
         { label: 'Home', href: '/' },
@@ -88,6 +94,11 @@ function Navbar() {
           })}
         </div>
         <div className='flex flex-row gap-3'>
+          <Button variant={"outline"} onClick={() => clearData()}>
+            <LogOut className="h-5 w-5" />
+            Exit
+            {/* <p className="sr-only">Exit</p> */}
+          </Button>
           <Button variant={"outline"} onClick={() => window.location.href = 'https://github.com/itsayushh/data-alchemist'} className="h-9 w-9 p-0">
             <Github className="h-5 w-5" />
           </Button>

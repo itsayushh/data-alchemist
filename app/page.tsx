@@ -519,7 +519,7 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (data.isDataLoaded) {
-      router.push("/validate")
+      router.push("/preprocess")
     } else {
       clearAllCaches()
     }
@@ -557,7 +557,7 @@ export default function UploadPage() {
             if (type === "tasks") setTasks(cleanedData)
 
             setIsLoading(false)
-            router.push("/validate")
+            router.push("/preprocess")
           },
         })
       } else if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
@@ -585,7 +585,7 @@ export default function UploadPage() {
         if (type === "tasks") setTasks(cleanedData)
 
         setIsLoading(false)
-        router.push("/validate")
+        router.push("/preprocess")
       }
     }
     reader.readAsBinaryString(file)
@@ -603,11 +603,11 @@ export default function UploadPage() {
   }
 
   const handleContinue = () => {
-    router.push("/validate")
+    router.push("/preprocess")
   }
 
   const handleSingleFileComplete = () => {
-    router.push("/validate")
+    router.push("/preprocess")
   }
 
   const allFilesUploaded = fileStates.clients.isUploaded && fileStates.workers.isUploaded && fileStates.tasks.isUploaded
@@ -803,7 +803,7 @@ export default function UploadPage() {
                         hover:scale-105 shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40"
                     >
                       <ArrowRight className="h-5 w-5 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
-                      Continue to Validation
+                      Continue to Preprocessing
                     </button>
                   </div>
                 )}

@@ -23,6 +23,18 @@ const sidebarItems = {
         url: "/",
         icon: Home,
     }],
+    Preprocess:[
+        {
+            title: "Preprocess",
+            url: '/preprocess',
+            icon: Shredder
+        },
+        {
+            title: "Data Upload",
+            url: '/upload',
+            icon: FileStack
+        }
+    ],
     Data:[
         {
             title: "Validate",
