@@ -35,7 +35,8 @@ const ValidationPanel = ({
     showAISuggestions,
     onApplyAIFix,
     onApplyAllAIFixes,
-    onHideAISuggestions
+    onHideAISuggestions,
+    onHoverIssue
 }: {
     validationResult: ValidationResult | null;
     onApplyFix: (entity: string, index: number, field: string, value: any) => void;
@@ -47,6 +48,7 @@ const ValidationPanel = ({
     onApplyAIFix: (fix: any) => void;
     onApplyAllAIFixes: () => void;
     onHideAISuggestions: () => void;
+    onHoverIssue?: (entity: string, row: number, column: string) => void;
 }) => {
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['CRITICAL']));
     const [searchTerm, setSearchTerm] = useState('');
@@ -242,7 +244,20 @@ const ValidationPanel = ({
                                         </div>
                                         <div className="space-y-2 max-h-[30vh] overflow-y-auto">
                                             {fixes.map((fix, index) => (
-                                                <Card key={index} className="p-3 bg-background/80">
+                                                <Card 
+                                                    key={index} 
+                                                    className="p-3 bg-background/80 transition-colors hover:bg-accent/50 cursor-pointer"
+                                                    onMouseEnter={() => {
+                                                        if (onHoverIssue && fix.entity && typeof fix.row === 'number' && fix.column) {
+                                                            onHoverIssue(fix.entity, fix.row, fix.column);
+                                                        }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                        if (onHoverIssue) {
+                                                            onHoverIssue('', -1, '');
+                                                        }
+                                                    }}
+                                                >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium leading-tight mb-1">
@@ -335,7 +350,20 @@ const ValidationPanel = ({
                                         </div>
                                         <div className="space-y-2 max-h-[30vh] overflow-y-auto">
                                             {aiSuggestedFixes.map((fix, index) => (
-                                                <Card key={index} className="p-3 border-primary/30 bg-background/80">
+                                                <Card 
+                                                    key={index} 
+                                                    className="p-3 border-primary/30 bg-background/80 transition-colors hover:bg-primary/5 cursor-pointer"
+                                                    onMouseEnter={() => {
+                                                        if (onHoverIssue && fix.entity && typeof fix.row === 'number' && fix.column) {
+                                                            onHoverIssue(fix.entity, fix.row, fix.column);
+                                                        }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                        if (onHoverIssue) {
+                                                            onHoverIssue('', -1, '');
+                                                        }
+                                                    }}
+                                                >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 mb-2">
@@ -422,35 +450,7 @@ const ValidationPanel = ({
 
                 {/* Issues Section - Now with Clear Visual Separation */}
                 <div className="flex-1 flex flex-col">
-                    <div className="p-4 border-b">
-                        <div className="flex items-center gap-2 mb-4">
-                            <h3 className="font-semibold text-base">Validation Issues</h3>
-                        </div>
-
-                        {/* Search & Filter */}
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search issues..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-9 h-9"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={selectedSeverity}
-                                    onChange={(e) => setSelectedSeverity(e.target.value)}
-                                    className="flex-1 px-3 py-2 text-sm border border-input bg-muted rounded-md focus:ring-2 focus:ring-ring focus:border-ring"
-                                >
-                                    <option value="all">All Issues</option>
-                                    <option value="error">Errors Only</option>
-                                    <option value="warning">Warnings Only</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                    
 
                     {/* Issues List */}
                     <div className="flex-1 overflow-hidden p-4 bg-background">
@@ -494,7 +494,21 @@ const ValidationPanel = ({
                                                 <div className="border-t bg-muted/60 max-h-[35vh] overflow-auto">
                                                     <div className="p-3 space-y-2 overflow-auto">
                                                         {categoryIssues.map((issue, index) => (
-                                                            <Card key={index} className="p-3 bg-background rounded-lg">
+                                                            <Card 
+                                                                key={index} 
+                                                                className="p-3 bg-background rounded-lg transition-colors hover:bg-accent/50 cursor-pointer"
+                                                                onMouseEnter={() => {
+                                                                    if (onHoverIssue && issue.entity && typeof issue.row === 'number' && issue.column) {
+                                                                        onHoverIssue(issue.entity, issue.row, issue.column);
+                                                                    }
+                                                                }}
+                                                                onMouseLeave={() => {
+                                                                    if (onHoverIssue) {
+                                                                        // Clear highlight by passing empty values
+                                                                        onHoverIssue('', -1, '');
+                                                                    }
+                                                                }}
+                                                            >
                                                                 <div className="flex items-start justify-between gap-3">
                                                                     <div className="flex items-start gap-3 flex-1">
                                                                         <div className="flex-1 min-w-0">

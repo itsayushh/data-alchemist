@@ -7,19 +7,11 @@ import {
   X, 
   Eye, 
   EyeOff,
-  Download,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   AlertCircle,
   AlertTriangle,
   Info
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectValue } from './ui/select';
-import { SelectTrigger } from '@radix-ui/react-select';
 
 // Types
 interface ValidationError {
@@ -39,6 +31,7 @@ interface ModernDataTableProps {
   onEdit: (index: number, field: string, value: any) => void;
   validationResult: ValidationResult | null;
   title?: string;
+  highlightedCell?: { row: number; column: string } | null;
 }
 
 interface Column {
@@ -67,15 +60,14 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   type,
   onEdit,
   validationResult,
-  title = 'Data Table'
+  title = 'Data Table',
+  highlightedCell
 }) => {
   // State management
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [filters, setFilters] = useState<FilterConfig>({});
   const [globalSearch, setGlobalSearch] = useState('');
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
   // Calculate optimal column widths based on content
@@ -198,16 +190,8 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
     return filteredData;
   }, [data, globalSearch, filters, sortConfig]);
 
-  // Pagination
-  const totalPages = Math.ceil(processedData.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = processedData.slice(startIndex, endIndex);
-
-  // Reset page when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [processedData.length]);
+  // Show all data in scrollable view
+  const displayData = processedData;
 
   // Handlers
   const handleSort = (key: string) => {
@@ -227,12 +211,10 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
       ...current,
       [key]: value
     }));
-    setCurrentPage(1);
   };
 
   const handleGlobalSearch = (value: string) => {
     setGlobalSearch(value);
-    setCurrentPage(1);
   };
 
   const toggleColumn = (key: string) => {
@@ -248,7 +230,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   };
 
   const getCellClassName = (rowIndex: number, column: string) => {
-    const issues = getValidationIssues(startIndex + rowIndex, column);
+    const issues = getValidationIssues(rowIndex, column);
     
     if (issues.some(issue => issue.severity === 'error')) {
       return 'border-2 border-red-300';
@@ -260,12 +242,12 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   };
 
   const getCellTooltip = (rowIndex: number, column: string) => {
-    const issues = getValidationIssues(startIndex + rowIndex, column);
+    const issues = getValidationIssues(rowIndex, column);
     return issues.map(issue => issue.message).join('; ');
   };
 
   const getValidationIcon = (rowIndex: number, column: string) => {
-    const issues = getValidationIssues(startIndex + rowIndex, column);
+    const issues = getValidationIssues(rowIndex, column);
     if (issues.length === 0) return null;
     
     const hasError = issues.some(issue => issue.severity === 'error');
@@ -325,7 +307,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
     return (
       <div className="bg-background rounded-lg shadow-sm border border-border p-8 text-center">
         <div className="text-muted-foreground">
-          <RefreshCw className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="text-lg font-medium mb-2">No Data Available</h3>
           <p className="text-sm">Upload a file to see your data in this modern table view.</p>
         </div>
@@ -421,11 +403,12 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full divide-y divide-border" style={{ tableLayout: 'fixed' }}>
+      {/* Table Container */}
+      <div className="relative">
+        <div className="overflow-auto max-h-[80vh] border-t border-border">
+          <table className="w-full divide-y divide-border" style={{ tableLayout: 'auto' }}>
           <thead className="bg-muted/30">
-            <tr>
+            <tr >
               <th 
                 className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider border-r border-border/50"
                 style={{ width: '60px', minWidth: '60px' }}
@@ -469,18 +452,27 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
             </tr>
           </thead>
           <tbody className="bg-background divide-y divide-border">
-            {paginatedData.map((row, index) => {
-              const actualIndex = startIndex + index;
+            {displayData.map((row, index) => {
+              const actualIndex = index;
+              const isRowHighlighted = highlightedCell && highlightedCell.row === actualIndex;
               
               return (
                 <tr 
                   key={actualIndex} 
-                  className="hover:bg-muted/20 group"
+                  className={`group transition-colors duration-200 ${
+                    isRowHighlighted 
+                      ? 'bg-primary/10 hover:bg-primary/15' 
+                      : 'hover:bg-muted/20'
+                  }`}
                   style={{ height: '3rem' }}
                 >
-                  <td className="px-4 py-2 text-sm text-muted-foreground border-r border-border/30 group-hover:border-border/50">
+                  <td className={`px-4 py-2 text-sm border-r border-border/30 group-hover:border-border/50 ${
+                    isRowHighlighted 
+                      ? 'text-primary font-medium bg-primary/5' 
+                      : 'text-muted-foreground'
+                  }`}>
                     <div className="flex items-center h-full">
-                      {startIndex + index + 1}
+                      {index + 1}
                     </div>
                   </td>
                   {visibleColumns.map((column) => {
@@ -488,11 +480,20 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                     const tooltip = getCellTooltip(index, column.key);
                     const validationIcon = getValidationIcon(index, column.key);
                     const inputProps = getCellInputProps(column, row[column.key]);
+                    const isCellHighlighted = highlightedCell && 
+                      highlightedCell.row === actualIndex && 
+                      highlightedCell.column === column.key;
                     
                     return (
                       <td 
                         key={column.key} 
-                        className={`px-2 py-1 border-r border-border/30 group-hover:border-border/50 last:border-r-0 `}
+                        className={`px-2 py-1 border-r border-border/30 group-hover:border-border/50 last:border-r-0 transition-colors duration-200 ${
+                          isCellHighlighted 
+                            ? 'bg-primary/20 ring-2 ring-primary/30 ring-inset' 
+                            : isRowHighlighted 
+                            ? 'bg-primary/5' 
+                            : ''
+                        }`}
                         title={tooltip}
                       >
                         <div className="relative h-full flex items-center ">
@@ -523,104 +524,18 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
-      {/* Footer with Pagination */}
-      <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-muted/20">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-foreground">Show:</span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setCurrentPage(1);
-              }}
-              // className="border border-border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-background"
-            >
-              <SelectTrigger className="border border-border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-background">
-                <SelectValue placeholder="Select page size" />
-              </SelectTrigger>
-              <SelectContent>
-               <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-foreground">per page</span>
-          </div>
-          
+      {/* Footer with Info */}
+      <div className="px-6 py-3 border-t border-border bg-muted/20">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(endIndex, processedData.length)} of {processedData.length} results
+            Showing {displayData.length} of {processedData.length} records
           </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 text-sm rounded ${
-                    currentPage === page
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            {totalPages > 5 && (
-              <>
-                <span className="text-muted-foreground">...</span>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  className={`px-3 py-1 text-sm rounded ${
-                    currentPage === totalPages
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
+          <div className="text-xs text-muted-foreground">
+            Scroll to view all data
           </div>
-          
-          <button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>

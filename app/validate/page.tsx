@@ -13,7 +13,6 @@ import {
     DataSet,
     getErrorCategory,
 } from '../../utils/data-validation';
-import { Rule } from '../../utils/rule';
 import { ModernDataTable } from '@/components/data-table';
 import { fixValidationErrors } from '../../lib/gemini';
 import ValidationPanel from '@/components/validation-panel';
@@ -29,6 +28,8 @@ export default function ValidatePage() {
     const [isAIFixLoading, setIsAIFixLoading] = useState(false);
     const [aiSuggestedFixes, setAiSuggestedFixes] = useState<any[]>([]);
     const [showAISuggestions, setShowAISuggestions] = useState(false);
+    const [highlightedCell, setHighlightedCell] = useState<{ row: number; column: string; entity: string } | null>(null);
+    const dataTableRef = useRef<HTMLDivElement | null>(null);
     const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Redirect to upload page if no data is loaded
@@ -216,11 +217,6 @@ export default function ValidatePage() {
         setShowAISuggestions(false);
     }, []);
 
-    const handleRulesChange = useCallback((rules: Rule[]) => {
-        setRules(rules);
-        // Validation will be triggered automatically by useEffect
-    }, [setRules]);
-
     const handleExport = () => {
         if (!validationResult?.isValid) {
             alert('Please fix all validation errors before exporting.');
@@ -260,6 +256,38 @@ export default function ValidatePage() {
         exportConsolidatedRulesConfig(rulesConfig);
     };
 
+    const handleHoverIssue = useCallback((entity: string, row: number, column: string) => {
+        if (entity === '' || row === -1 || column === '') {
+            // Clear highlight
+            setHighlightedCell(null);
+        } else {
+            // Set highlight and switch to the correct tab if needed
+            setHighlightedCell({ row, column, entity });
+            
+            // Switch to the correct tab if not already active
+            if (entity !== activeTab && (entity === 'clients' || entity === 'workers' || entity === 'tasks')) {
+                setActiveTab(entity as 'clients' | 'workers' | 'tasks');
+            }
+            
+            // Scroll to the highlighted row after a short delay to allow tab switching
+            setTimeout(() => {
+                if (dataTableRef.current) {
+                    const scrollContainer = dataTableRef.current.querySelector('.overflow-auto');
+                    if (scrollContainer) {
+                        // Calculate row height (3rem = 48px) and scroll to position
+                        const rowHeight = 48;
+                        const headerHeight = 48;
+                        const targetScroll = row * rowHeight;
+                        
+                        scrollContainer.scrollTo({
+                            top: Math.max(0, targetScroll - headerHeight),
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }, 200);
+        }
+    }, [activeTab]);
 
     const getTabIcon = (tab: string) => {
         switch (tab) {
@@ -299,6 +327,7 @@ export default function ValidatePage() {
                             onApplyAIFix={handleApplyAIFix}
                             onApplyAllAIFixes={handleApplyAllAIFixes}
                             onHideAISuggestions={handleHideAISuggestions}
+                            onHoverIssue={handleHoverIssue}
                         />
                     </div>
 
@@ -348,7 +377,7 @@ export default function ValidatePage() {
                             </div>
 
                             {/* Data Content */}
-                            <div className="p-0 ">
+                            <div className="p-0" ref={dataTableRef}>
                                 {(
                                     <ModernDataTable
                                         data={data[activeTab] as any[]}
@@ -356,6 +385,11 @@ export default function ValidatePage() {
                                         onEdit={(index, field, value) => handleEdit(activeTab, index, field, value)}
                                         validationResult={validationResult}
                                         title={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                                        highlightedCell={
+                                            highlightedCell && highlightedCell.entity === activeTab 
+                                                ? { row: highlightedCell.row, column: highlightedCell.column } 
+                                                : null
+                                        }
                                     />
                                 )}
                             </div>
