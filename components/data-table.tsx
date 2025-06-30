@@ -1,4 +1,3 @@
-
 import { ValidationResult } from '@/utils/data-validation';
 import { 
   Search, 
@@ -19,6 +18,8 @@ import {
   Info
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectValue } from './ui/select';
+import { SelectTrigger } from '@radix-ui/react-select';
 
 // Types
 interface ValidationError {
@@ -31,7 +32,6 @@ interface ValidationError {
   value?: any;
   suggestion?: string;
 }
-
 
 interface ModernDataTableProps {
   data: any[];
@@ -48,6 +48,9 @@ interface Column {
   sortable: boolean;
   filterable: boolean;
   width?: string;
+  minWidth?: string;
+  maxWidth?: string;
+  priority: number; // For responsive hiding
 }
 
 interface SortConfig {
@@ -75,13 +78,43 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Calculate optimal column widths based on content
+  const calculateColumnWidth = (column: Column, values: any[]): string => {
+    if (column.width) return column.width;
+    
+    // Sample content to estimate width
+    const sampleValues = values.slice(0, Math.min(100, values.length));
+    const maxLength = Math.max(
+      column.label.length,
+      ...sampleValues.map(val => String(val || '').length)
+    );
+    
+    // Base width calculations by type
+    switch (column.type) {
+      case 'number':
+        return `${Math.max(80, Math.min(120, maxLength * 8 + 40))}px`;
+      case 'date':
+        return `${Math.max(120, Math.min(160, maxLength * 8 + 40))}px`;
+      case 'email':
+        return `${Math.max(180, Math.min(250, maxLength * 7 + 40))}px`;
+      case 'phone':
+        return `${Math.max(130, Math.min(170, maxLength * 8 + 40))}px`;
+      default:
+        // Text fields - dynamic based on content
+        if (maxLength < 10) return `${Math.max(100, maxLength * 10 + 40)}px`;
+        if (maxLength < 20) return `${Math.max(140, maxLength * 8 + 40)}px`;
+        if (maxLength < 40) return `${Math.max(200, maxLength * 6 + 40)}px`;
+        return `${Math.min(300, maxLength * 5 + 40)}px`;
+    }
+  };
 
-  // Auto-detect column types and create column definitions
+  // Auto-detect column types and create column definitions with dynamic sizing
   const columns: Column[] = useMemo(() => {
     if (data.length === 0) return [];
     
     const sampleRow = data[0];
-    return Object.keys(sampleRow).map(key => {
+    return Object.keys(sampleRow).map((key, index) => {
+      const values = data.map(row => row[key]);
       const value = sampleRow[key];
       let type: Column['type'] = 'text';
       
@@ -94,13 +127,24 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
         else if (/^\+?[\d\s\-\(\)]+$/.test(value)) type = 'phone';
       }
       
+      // Calculate priority for responsive behavior
+      const priority = (() => {
+        if (['id', 'name', 'title'].includes(key.toLowerCase())) return 1;
+        if (['email', 'phone', 'status'].includes(key.toLowerCase())) return 2;
+        if (type === 'number') return 3;
+        return 4;
+      })();
+      
       return {
         key,
         label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
         type,
         sortable: true,
         filterable: true,
-        width: type === 'number' ? '120px' : undefined
+        width: calculateColumnWidth({ key, label: '', type, sortable: true, filterable: true, priority } as Column, values),
+        minWidth: type === 'number' ? '80px' : '100px',
+        maxWidth: type === 'text' ? '300px' : undefined,
+        priority
       };
     });
   }, [data]);
@@ -203,18 +247,16 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
     });
   };
 
-
-
   const getCellClassName = (rowIndex: number, column: string) => {
     const issues = getValidationIssues(startIndex + rowIndex, column);
     
     if (issues.some(issue => issue.severity === 'error')) {
-      return 'border-red-500';
+      return 'border-2 border-red-300';
     } else if (issues.some(issue => issue.severity === 'warning')) {
-      return 'border-yellow-500';
+      return 'border-2 border-yellow-400';
     }
     
-    return 'border-neutral-200';
+    return '';
   };
 
   const getCellTooltip = (rowIndex: number, column: string) => {
@@ -238,13 +280,52 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
     return <Info className="h-4 w-4 text-blue-500" />;
   };
 
+  // Get cell input type and props based on column type
+  const getCellInputProps = (column: Column, value: any) => {
+    const baseProps = {
+      value: value ?? '',
+      className: `w-full h-full border-0 text-foreground/90 rounded px-2 py-1 text-sm bg-transparent focus:bg-background focus:ring-1 focus:ring-primary resize-none`,
+    };
+
+    switch (column.type) {
+      case 'number':
+        return {
+          ...baseProps,
+          type: 'number',
+          className: `${baseProps.className} text-right`,
+        };
+      case 'email':
+        return {
+          ...baseProps,
+          type: 'email',
+        };
+      case 'date':
+        return {
+          ...baseProps,
+          type: 'date',
+        };
+      default:
+        // For text content that might be long, use textarea
+        const isLongText = String(value || '').length > 50;
+        if (isLongText) {
+          return {
+            ...baseProps,
+            as: 'textarea',
+            rows: 1,
+            className: `${baseProps.className} min-h-[2rem] overflow-hidden`,
+          };
+        }
+        return baseProps;
+    }
+  };
+
   const visibleColumns = columns.filter(col => !hiddenColumns.has(col.key));
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-8 text-center">
-        <div className="text-neutral-500">
-          <RefreshCw className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+      <div className="bg-background rounded-lg shadow-sm border border-border p-8 text-center">
+        <div className="text-muted-foreground">
+          <RefreshCw className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="text-lg font-medium mb-2">No Data Available</h3>
           <p className="text-sm">Upload a file to see your data in this modern table view.</p>
         </div>
@@ -253,13 +334,13 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
   }
 
   return (
-    <div className="bg-muted ">
+    <div className="bg-background border border-border rounded-lg shadow-sm">
       {/* Header */}
-      <div className="px-6 py-4 border-b bg-background">
+      <div className="px-6 py-4 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-muted-foreground">
               {processedData.length} of {data.length} records
             </p>
           </div>
@@ -267,18 +348,18 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
           <div className="flex items-center space-x-3">
             {/* Global Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search all columns..."
                 value={globalSearch}
                 onChange={(e) => handleGlobalSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 border  rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                className="pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-background"
               />
               {globalSearch && (
                 <button
                   onClick={() => handleGlobalSearch('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-foreground"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -291,7 +372,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
               className={`p-2 rounded-lg border ${
                 showFilters 
                   ? 'bg-primary/10 border-primary/20 text-primary' 
-                  : 'border-neutral-300 text-neutral-500 hover:bg-accent hover:text-accent-foreground'
+                  : 'border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               <Filter className="h-4 w-4" />
@@ -301,7 +382,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="p-2 rounded-lg border border-neutral-300 text-neutral-500 hover:bg-accent hover:text-accent-foreground"
+                className="p-2 rounded-lg border border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               >
                 <Eye className="h-4 w-4" />
               </button>
@@ -311,7 +392,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
         
         {/* Column Filters */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-muted rounded-lg">
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {columns.map(column => (
                 <div key={column.key} className="space-y-2">
@@ -319,7 +400,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                     {column.label}
                     <button
                       onClick={() => toggleColumn(column.key)}
-                      className="text-neutral-400 hover:text-neutral-600"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       {hiddenColumns.has(column.key) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                     </button>
@@ -330,7 +411,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                       placeholder={`Filter ${column.label}...`}
                       value={filters[column.key] || ''}
                       onChange={(e) => handleFilter(column.key, e.target.value)}
-                      className="w-full px-3 py-1 text-sm border border-neutral-300 rounded focus:ring-1 focus:ring-primary focus:border-primary"
+                      className="w-full px-3 py-1 text-sm border border-border rounded focus:ring-1 focus:ring-primary focus:border-primary bg-background"
                     />
                   )}
                 </div>
@@ -342,24 +423,31 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y">
-          <thead className="bg-muted">
+        <table className="w-full divide-y divide-border" style={{ tableLayout: 'fixed' }}>
+          <thead className="bg-muted/30">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-forground uppercase tracking-wider">
+              <th 
+                className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider border-r border-border/50"
+                style={{ width: '60px', minWidth: '60px' }}
+              >
                 #
               </th>
               {visibleColumns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-6 py-3 text-left text-xs font-semibold text-forground uppercase"
-                  style={{ width: column.width }}
+                  className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider border-r border-border/50 last:border-r-0"
+                  style={{ 
+                    width: column.width,
+                    minWidth: column.minWidth,
+                    maxWidth: column.maxWidth 
+                  }}
                 >
                   <div className="flex items-center space-x-1">
-                    <span>{column.label}</span>
+                    <span className="truncate">{column.label}</span>
                     {column.sortable && (
                       <button
                         onClick={() => handleSort(column.key)}
-                        className="text-foreground hover:text-accent-foreground"
+                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
                       >
                         {sortConfig?.key === column.key ? (
                           sortConfig.direction === 'asc' ? (
@@ -380,34 +468,49 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
               ))}
             </tr>
           </thead>
-          <tbody className="bg-background divide-y divide-foreground/20">
+          <tbody className="bg-background divide-y divide-border">
             {paginatedData.map((row, index) => {
               const actualIndex = startIndex + index;
               
               return (
                 <tr 
                   key={actualIndex} 
-                  className="hover:bg-foreground/5"
+                  className="hover:bg-muted/20 group"
+                  style={{ height: '3rem' }}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
-                    {startIndex + index + 1}
+                  <td className="px-4 py-2 text-sm text-muted-foreground border-r border-border/30 group-hover:border-border/50">
+                    <div className="flex items-center h-full">
+                      {startIndex + index + 1}
+                    </div>
                   </td>
                   {visibleColumns.map((column) => {
                     const cellClass = getCellClassName(index, column.key);
                     const tooltip = getCellTooltip(index, column.key);
                     const validationIcon = getValidationIcon(index, column.key);
+                    const inputProps = getCellInputProps(column, row[column.key]);
                     
                     return (
-                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                        <div className="relative">
-                          <input
-                              type="text"
-                              value={row[column.key] ?? ''}
+                      <td 
+                        key={column.key} 
+                        className={`px-2 py-1 border-r border-border/30 group-hover:border-border/50 last:border-r-0 `}
+                        title={tooltip}
+                      >
+                        <div className="relative h-full flex items-center ">
+                          {inputProps.value === 'textarea' ? (
+                            <textarea
+                              {...inputProps}
                               onChange={(e) => onEdit(actualIndex, column.key, e.target.value)}
-                              className={`w-full border text-foreground/90  rounded p-2 text-sm bg-foreground/3`}
+                              className={`${inputProps.className} ${cellClass}`}
                             />
+                          ) : (
+                            <input
+                              {...inputProps}
+                              onChange={(e) => onEdit(actualIndex, column.key, e.target.value)}
+                              className={`${inputProps.className} ${cellClass}`}
+                            />
+                          )}
                           {validationIcon && (
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex-shrink-0">
                               {validationIcon}
                             </div>
                           )}
@@ -423,27 +526,33 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
       </div>
 
       {/* Footer with Pagination */}
-      <div className="px-6 py-4 border-t border-muted flex items-center justify-between">
+      <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-muted/20">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-foreground">Show:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
                 setCurrentPage(1);
               }}
-              className="border border-forground/10 rounded px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+              // className="border border-border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-background"
             >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              <SelectTrigger className="border border-border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-background">
+                <SelectValue placeholder="Select page size" />
+              </SelectTrigger>
+              <SelectContent>
+               <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
             <span className="text-sm text-foreground">per page</span>
           </div>
           
-          <div className="text-sm text-foreground">
+          <div className="text-sm text-muted-foreground">
             Showing {startIndex + 1} to {Math.min(endIndex, processedData.length)} of {processedData.length} results
           </div>
         </div>
@@ -452,14 +561,14 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
           <button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
-            className="p-2 border border-neutral-300 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronsLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="p-2 border border-neutral-300 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -473,7 +582,7 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
                   onClick={() => setCurrentPage(page)}
                   className={`px-3 py-1 text-sm rounded ${
                     currentPage === page
-                      ? 'bg-accent text-accent-foreground'
+                      ? 'bg-primary text-primary-foreground'
                       : 'text-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
@@ -483,13 +592,13 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
             })}
             {totalPages > 5 && (
               <>
-                <span className="text-neutral-500">...</span>
+                <span className="text-muted-foreground">...</span>
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   className={`px-3 py-1 text-sm rounded ${
                     currentPage === totalPages
-                      ? 'bg-primary text-white'
-                      : 'text-foreground hover:bg-neutral-100'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   {totalPages}
@@ -501,14 +610,14 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
           <button
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="p-2 border border-neutral-300 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
-            className="p-2 border border-neutral-300 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 border border-border rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronsRight className="h-4 w-4" />
           </button>
@@ -517,86 +626,3 @@ export const ModernDataTable: React.FC<ModernDataTableProps> = ({
     </div>
   );
 };
-
-// Demo component to show the table in action
-// const TableDemo = () => {
-//   // Sample data for demonstration
-//   const [sampleData] = useState([
-//     { id: 1, name: 'John Doe', email: 'john@example.com', phone: '+1234567890', salary: 75000, department: 'Engineering', joinDate: '2023-01-15' },
-//     { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '+1234567891', salary: 82000, department: 'Marketing', joinDate: '2023-02-20' },
-//     { id: 3, name: 'Bob Johnson', email: 'bob@example.com', phone: '+1234567892', salary: 68000, department: 'Sales', joinDate: '2023-03-10' },
-//     { id: 4, name: 'Alice Brown', email: 'alice@example.com', phone: '+1234567893', salary: 91000, department: 'Engineering', joinDate: '2023-01-25' },
-//     { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', phone: '+1234567894', salary: 77000, department: 'HR', joinDate: '2023-04-05' },
-//     { id: 6, name: 'Diana Prince', email: 'diana@example.com', phone: '+1234567895', salary: 89000, department: 'Engineering', joinDate: '2023-02-15' },
-//     { id: 7, name: 'Edward Norton', email: 'edward@example.com', phone: '+1234567896', salary: 73000, department: 'Marketing', joinDate: '2023-03-20' },
-//     { id: 8, name: 'Fiona Green', email: 'fiona@example.com', phone: '+1234567897', salary: 71000, department: 'Sales', joinDate: '2023-04-10' },
-//     { id: 9, name: 'George Miller', email: 'george@example.com', phone: '+1234567898', salary: 85000, department: 'Engineering', joinDate: '2023-01-30' },
-//     { id: 10, name: 'Helen Davis', email: 'helen@example.com', phone: '+1234567899', salary: 79000, department: 'HR', joinDate: '2023-03-25' },
-//   ]);
-
-//   // Sample validation result
-//   const [validationResult] = useState({
-//     isValid: false,
-//     errors: [
-//       {
-//         type: 'INVALID_EMAIL',
-//         message: 'Invalid email format',
-//         severity: 'error' as const,
-//         entity: 'employees',
-//         row: 2,
-//         column: 'email',
-//         value: 'jane@example.com',
-//         suggestion: 'Check email format'
-//       }
-//     ],
-//     warnings: [
-//       {
-//         type: 'LOW_SALARY',
-//         message: 'Salary below market average',
-//         severity: 'warning' as const,
-//         entity: 'employees',
-//         row: 2,
-//         column: 'salary',
-//         value: 68000,
-//         suggestion: 'Consider salary adjustment'
-//       }
-//     ],
-//     summary: {
-//       totalErrors: 1,
-//       totalWarnings: 1,
-//       entityCounts: {
-//         clients: 0,
-//         workers: 10,
-//         tasks: 0
-//       }
-//     }
-//   });
-
-//   const handleEdit = (index: number, field: string, value: any) => {
-//     console.log(`Editing row ${index}, field ${field}, new value:`, value);
-//     // In a real app, this would update the data
-//   };
-
-//   return (
-//     <div className="p-8 bg-gray-50 min-h-screen">
-//       <div className="max-w-7xl mx-auto">
-//         <div className="mb-8">
-//           <h1 className="text-3xl font-bold text-gray-900 mb-2">Modern Data Table</h1>
-//           <p className="text-gray-600">
-//             A feature-rich data table with sorting, searching, filtering, pagination, and validation feedback.
-//           </p>
-//         </div>
-        
-//         <ModernDataTable
-//           data={sampleData}
-//           type="employees"
-//           onEdit={handleEdit}
-//           validationResult={validationResult}
-//           title="Employee Data"
-//         />
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default TableDemo;

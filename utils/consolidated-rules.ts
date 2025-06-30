@@ -1,5 +1,6 @@
-import { Rule } from './rule';
+// import { Buis } from './rule';
 import { Priorities, PrioritizationConfig } from '@/contexts/DataContext';
+import { BusinessRule } from './rule-validation';
 
 export interface ConsolidatedRulesConfig {
   version: string;
@@ -10,7 +11,7 @@ export interface ConsolidatedRulesConfig {
     tasks: number;
   };
   validationPassed: boolean;
-  rules: Rule[];
+  rules: BusinessRule[];
   prioritization: {
     weights: Priorities;
     rankingOrder: string[];
@@ -29,7 +30,7 @@ export interface ConsolidatedRulesConfig {
 export const createConsolidatedRulesConfig = (
   entities: { clients: number; workers: number; tasks: number },
   validationPassed: boolean,
-  rules: Rule[],
+  rules: BusinessRule[],
   prioritizationConfig: PrioritizationConfig,
   activeMethod?: string
 ): ConsolidatedRulesConfig => {
@@ -68,7 +69,7 @@ export const exportConsolidatedRulesConfig = (config: ConsolidatedRulesConfig) =
 export const importConsolidatedRulesConfig = (
   fileContent: string
 ): {
-  rules?: Rule[];
+  rules?: BusinessRule[];
   prioritization?: PrioritizationConfig;
   success: boolean;
   error?: string;

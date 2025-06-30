@@ -177,10 +177,92 @@ DATA CONTEXT:
 ${JSON.stringify(dataContext, null, 2)}
 
 AVAILABLE RULE TYPES:
-1. coRun: Tasks that must execute simultaneously
-2. slotRestriction: Minimum resource requirements for groups  
-3. loadLimit: Maximum workload limits for worker groups
-4. phaseWindow: Restrict task execution to specific phases
+1. CO-RUN RULES (coRun):
+   Purpose: Ensure specified tasks execute simultaneously in the same phase
+   Use Cases: 
+   - Related tasks that depend on each other
+   - Tasks that share resources efficiently when run together
+   - Coordinated activities (e.g., "frontend and backend development")
+   Structure: {
+     "type": "coRun",
+     "tasks": ["TaskID1", "TaskID2", ...], // Must be valid TaskIDs from data
+     "name": "descriptive name",
+     "description": "what this rule achieves"
+   }
+
+2. SLOT RESTRICTION RULES (slotRestriction):
+   Purpose: Ensure groups have minimum overlapping availability
+   Use Cases:
+   - Client groups needing coordinated service delivery
+   - Worker groups requiring collaboration time
+   - Ensuring sufficient shared time slots for group activities
+   Structure: {
+     "type": "slotRestriction",
+     "groupType": "client|worker",
+     "groupId": "actual GroupTag or WorkerGroup from data",
+     "minCommonSlots": number, // Minimum overlapping phase slots required
+     "name": "descriptive name",
+     "description": "constraint explanation"
+   }
+
+3. LOAD LIMIT RULES (loadLimit):
+   Purpose: Cap maximum workload per phase for worker groups
+   Use Cases:
+   - Preventing worker burnout
+   - Maintaining quality by limiting concurrent tasks
+   - Balancing workload distribution
+   Structure: {
+     "type": "loadLimit",
+     "workerGroup": "actual WorkerGroup from data",
+     "maxSlotsPerPhase": number, // Must be ≤ group's collective AvailableSlots
+     "name": "descriptive name",
+     "description": "workload constraint explanation"
+   }
+
+4. PHASE WINDOW RULES (phaseWindow):
+   Purpose: Restrict task execution to specific phases
+   Use Cases:
+   - Sequential project dependencies
+   - Resource availability constraints
+   - Seasonal or time-sensitive requirements
+   Structure: {
+     "type": "phaseWindow",
+     "taskId": "actual TaskID from data",
+     "allowedPhases": [phase numbers], // Must intersect with task's PreferredPhases
+     "name": "descriptive name",
+     "description": "timing constraint explanation"
+   }
+
+5. PATTERN MATCH RULES (patternMatch):
+   Purpose: Apply rules based on regex patterns in task/client/worker attributes
+   Use Cases:
+   - Bulk rule application (e.g., all "urgent_" prefixed tasks)
+   - Category-based constraints
+   - Dynamic rule application based on naming conventions
+   Structure: {
+     "type": "patternMatch",
+     "pattern": "regex pattern",
+     "entityType": "client|worker|task",
+     "ruleTemplate": "coRun|slotRestriction|loadLimit|phaseWindow",
+     "parameters": {}, // Template-specific parameters
+     "name": "descriptive name",
+     "description": "pattern-based rule explanation"
+   }
+
+6. PRECEDENCE OVERRIDE RULES (precedenceOverride):
+   Purpose: Define rule priority and conflict resolution
+   Use Cases:
+   - Critical client exceptions
+   - Emergency task prioritization
+   - Custom business logic hierarchies
+   Structure: {
+     "type": "precedenceOverride",
+     "overrideRules": ["ruleId1", "ruleId2"],
+     "priority": number, // Higher numbers = higher priority
+     "conditions": {}, // When this override applies
+     "name": "descriptive name",
+     "description": "priority override explanation"
+   }
 
 USER REQUEST: "${prompt}"
 
@@ -373,7 +455,94 @@ Analyze this data and suggest exactly 5 concise business rules:
 
 DATA: ${JSON.stringify(minimalContext, null, 0)}
 
-RULE TYPES: coRun, slotRestriction, loadLimit, phaseWindow
+AVAILABLE RULE TYPES & DETAILED SPECIFICATIONS:
+
+1. CO-RUN RULES (coRun):
+   Purpose: Ensure specified tasks execute simultaneously in the same phase
+   Use Cases: 
+   - Related tasks that depend on each other
+   - Tasks that share resources efficiently when run together
+   - Coordinated activities (e.g., "frontend and backend development")
+   Structure: {
+     "type": "coRun",
+     "tasks": ["TaskID1", "TaskID2", ...], // Must be valid TaskIDs from data
+     "name": "descriptive name",
+     "description": "what this rule achieves"
+   }
+
+2. SLOT RESTRICTION RULES (slotRestriction):
+   Purpose: Ensure groups have minimum overlapping availability
+   Use Cases:
+   - Client groups needing coordinated service delivery
+   - Worker groups requiring collaboration time
+   - Ensuring sufficient shared time slots for group activities
+   Structure: {
+     "type": "slotRestriction",
+     "groupType": "client|worker",
+     "groupId": "actual GroupTag or WorkerGroup from data",
+     "minCommonSlots": number, // Minimum overlapping phase slots required
+     "name": "descriptive name",
+     "description": "constraint explanation"
+   }
+
+3. LOAD LIMIT RULES (loadLimit):
+   Purpose: Cap maximum workload per phase for worker groups
+   Use Cases:
+   - Preventing worker burnout
+   - Maintaining quality by limiting concurrent tasks
+   - Balancing workload distribution
+   Structure: {
+     "type": "loadLimit",
+     "workerGroup": "actual WorkerGroup from data",
+     "maxSlotsPerPhase": number, // Must be ≤ group's collective AvailableSlots
+     "name": "descriptive name",
+     "description": "workload constraint explanation"
+   }
+
+4. PHASE WINDOW RULES (phaseWindow):
+   Purpose: Restrict task execution to specific phases
+   Use Cases:
+   - Sequential project dependencies
+   - Resource availability constraints
+   - Seasonal or time-sensitive requirements
+   Structure: {
+     "type": "phaseWindow",
+     "taskId": "actual TaskID from data",
+     "allowedPhases": [phase numbers], // Must intersect with task's PreferredPhases
+     "name": "descriptive name",
+     "description": "timing constraint explanation"
+   }
+
+5. PATTERN MATCH RULES (patternMatch):
+   Purpose: Apply rules based on regex patterns in task/client/worker attributes
+   Use Cases:
+   - Bulk rule application (e.g., all "urgent_" prefixed tasks)
+   - Category-based constraints
+   - Dynamic rule application based on naming conventions
+   Structure: {
+     "type": "patternMatch",
+     "pattern": "regex pattern",
+     "entityType": "client|worker|task",
+     "ruleTemplate": "coRun|slotRestriction|loadLimit|phaseWindow",
+     "parameters": {}, // Template-specific parameters
+     "name": "descriptive name",
+     "description": "pattern-based rule explanation"
+   }
+
+6. PRECEDENCE OVERRIDE RULES (precedenceOverride):
+   Purpose: Define rule priority and conflict resolution
+   Use Cases:
+   - Critical client exceptions
+   - Emergency task prioritization
+   - Custom business logic hierarchies
+   Structure: {
+     "type": "precedenceOverride",
+     "overrideRules": ["ruleId1", "ruleId2"],
+     "priority": number, // Higher numbers = higher priority
+     "conditions": {}, // When this override applies
+     "name": "descriptive name",
+     "description": "priority override explanation"
+   }
 
 Return ONLY this JSON structure:
 {
